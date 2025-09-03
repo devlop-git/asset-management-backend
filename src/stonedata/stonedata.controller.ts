@@ -1,4 +1,12 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
+import { StonedataService } from './stonedata.service';
 
 @Controller('stonedata')
-export class StonedataController {}
+export class StonedataController {
+    constructor(private readonly stoneDataService: StonedataService) { }
+
+    @Get()
+    async getData() {
+        return this.stoneDataService.getDiamondData();
+    }
+}
