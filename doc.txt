@@ -1,0 +1,29 @@
+1. Create New Project
+cmd:>nest new my-project
+
+2. Install PostgreSQL Dependencies
+cmd:>npm install --save @nestjs/typeorm typeorm pg
+
+3. Create Module, Service, and Controller
+cmd:>nest g module stonedata
+cmd:>nest g service stonedata
+cmd:>nest g controller stonedata
+
+4. Install TypeORM CLI
+cmd:>npm install --save-dev typeorm ts-node
+
+5. Create table for all entity in one migration
+cmd:>npm run migration:generate src/database/migrations/InitialMigration
+
+5.1. Create empty migration files for each entity
+cmd:>npm run migration:create src/database/migrations/CreateStockTable
+cmd:>npm run migration:create src/database/migrations/CreateStoneDataTable
+cmd:>npm run migration:create src/database/migrations/CreateMediaTable
+
+6. Run Migration
+cmd:>npm run migration:run
+
+7. Revert Migration (if needed)
+cmd:>npm run migration:revert
+
+
