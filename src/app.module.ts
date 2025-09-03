@@ -1,32 +1,20 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { StonedataModule } from './stonedata/stonedata.module';
+import { DatabaseModule } from './stonedata/database.module';
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // available everywhere
+      isGlobal: true, // env vars available everywhere
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
-        autoLoadEntities: true,
-       synchronize: false, // ❌ Important: disable in production, we use migrations
-      }),
-    }),
-    StonedataModule,
+    DatabaseModule,   // 👈 register all custom datasources
+    StonedataModule,  // 👈 feature module that uses them
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

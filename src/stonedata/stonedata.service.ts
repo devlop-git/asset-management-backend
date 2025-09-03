@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 @Injectable()
 export class StonedataService {
 
-    constructor(private readonly dataSource: DataSource) {}
+    constructor(@Inject('MsSqlDataSource') private readonly dataSource: DataSource) { }
     async getDiamondData() {
-    const query = `
-      SELECT
+        try {
+            const query = `
+      SELECT TOP 10
           dds.*,
           acs."ItemName",
           acs."ItemTypeNM",
@@ -34,8 +35,12 @@ export class StonedataService {
       ORDER BY dds."OrderRecdDate" DESC
     `;
 
-    const result = await this.dataSource.query(query);
-    return result;
-  }
+            const result = await this.dataSource.query(query);
+            return result;
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
 
 }

@@ -5,7 +5,7 @@ import { StonedataService } from './stonedata.service';
 export class StonedataController {
     constructor(private readonly stoneDataService: StonedataService) { }
 
-    @Get()
+    @Get('dfe')
     async getData() {
         return this.stoneDataService.getDiamondData();
     }
