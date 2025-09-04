@@ -14,12 +14,14 @@ export class CreateStockTable1756889510922 implements MigrationInterface {
                     },
                     {
                         name: "stock",
-                        type: "integer",
+                        type: "varchar",
+                        length: "100",
                         isNullable: false,
                     },
                     {
                         name: "orderid",
-                        type: "integer",
+                        type: "varchar",
+                        length: "100",
                         isNullable: false,
                     },
                     {
