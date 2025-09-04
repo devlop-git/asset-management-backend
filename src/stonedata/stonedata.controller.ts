@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors,Query } from '@nestjs/common';
 import { StonedataService } from './stonedata.service';
 import { getDiamondCodes } from 'src/utils/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -68,11 +68,28 @@ export class StonedataController {
 
     }
 
-     @Get('dfe/fetch-save')
+    @Get('dfe/fetch-save')
     async fetchAndSaveDFEStockData() {
         // This will fetch DFE stock data and save it to Postgres
         return await this.stoneDataService.fetchAndSaveDFEStockData();
-      
+    }
+
+    @Post('create-stonedata')
+    async createStonedataFromStockApi() {
+        await this.stoneDataService.createStonedataFromStock();
+        return { message: 'Stonedata creation from stock completed.' };
+    }
+
+    @Get('stock-list')
+    async getStockList(
+        @Query('page') page: string,
+        @Query('pageSize') pageSize: string
+    ) {
+        const pageNum = parseInt(page, 10) || 1;
+        const pageSizeNum = parseInt(pageSize, 10) || 20;
+        return await this.stoneDataService.getPaginatedIgiList(pageNum, pageSizeNum);
+    }
+
     @Post('upload-media')
     @UseInterceptors(FileInterceptor('media'))
     async uploadMedia(
