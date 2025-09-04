@@ -7,6 +7,7 @@ export const labStoneQuery = (diamondCodes:any)=>{
         ON t1.stone_price_id = t2.stone_price_id 
         where t1.diamond_code  in (${formatted});
     `
+    console.log("lab",query);
     return query
 }
 
@@ -19,12 +20,13 @@ export const naturalStoneQuery = (diamondCodes:any)=>{
         ON t1.stone_price_id = t2.stone_price_id 
         where t1.diamond_code  in (${formatted});
     `
+    console.log("natural",query);
     return query
 }
 
 export const dfeStoneQuery = ()=>{
     const query = `
-    SELECT TOP 10
+    SELECT TOP 100
           dds.*,
           acs."ItemName",
           acs."ItemTypeNM",

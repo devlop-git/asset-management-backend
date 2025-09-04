@@ -69,7 +69,7 @@ export class StonedataService {
         return stoneData.map((stone: any) => {
             const [labName, code] = stone.StockID.split(" ");
             const isLab = stone.StoneType.toLowerCase().includes("lab");
-            const dfrInfo:any = dfrMap.get(code) || {};
+            const dfrInfo: any = dfrMap.get(code) || {};
 
             return {
                 ...stone,
@@ -83,7 +83,7 @@ export class StonedataService {
     }
 
 
-       async saveDiamondDataToPostgres(diamondDataArray: any[]) {
+    async saveDiamondDataToPostgres(diamondDataArray: any[]) {
         const stockRepo = this.pgDataSource.getRepository(Stock);
         const stocks: Stock[] = diamondDataArray.map(item => {
             const stock = new Stock();
