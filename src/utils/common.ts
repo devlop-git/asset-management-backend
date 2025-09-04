@@ -23,7 +23,6 @@ export const getDiamondCodes = (stoneData: any) => {
         }
     });
 
-    console.log(result);
     return result;
 
 };

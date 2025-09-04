@@ -24,7 +24,7 @@ export const naturalStoneQuery = (diamondCodes:any)=>{
 
 export const dfeStoneQuery = ()=>{
     const query = `
-    SELECT TOP 10
+    SELECT TOP 1000
           dds.*,
           acs."ItemName",
           acs."ItemTypeNM",
