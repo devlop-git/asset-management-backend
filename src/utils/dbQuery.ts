@@ -24,7 +24,7 @@ export const naturalStoneQuery = (diamondCodes:any)=>{
 
 export const dfeStoneQuery = ()=>{
     const query = `
-    SELECT TOP 10
+    SELECT TOP 1000
           dds.*,
           acs."ItemName",
           acs."ItemTypeNM",
@@ -51,5 +51,27 @@ export const dfeStoneQuery = ()=>{
       ORDER BY dds."OrderRecdDate" DESC
     `
     return query
+}
+
+export function getStockStonedataJoinQuery() {
+  return `
+    SELECT
+      s.lab AS "CertificateType",
+      s.certficate_no AS "CertificateNo",
+      s.stone_type AS "StoneType",
+      sd.shape AS "Shape",
+      s.avg_weight AS "CaratAvgWt",
+      sd.color AS "Color",
+      sd.clarity AS "Clarity",
+      sd.cut AS "Cut",
+      sd.polish AS "Polish",
+      sd.symmetry AS "Symmetry",
+      sd.fluorescence AS "Fluorescence"
+    FROM stock s
+    LEFT JOIN stonedata sd
+      ON s.certficate_no = sd.certificate_no
+    WHERE s.is_active = true
+      AND s.stock LIKE 'IGI %'
+  `;
 }
 
