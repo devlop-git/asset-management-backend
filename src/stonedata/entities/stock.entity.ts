@@ -5,11 +5,11 @@ export class Stock {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  stock: number;
+ @Column({ type: 'varchar', length: 100 })
+  stock: string;
 
-  @Column()
-  orderid: number;
+ @Column({ type: 'varchar', length: 100 })
+  orderid: string;
 
   @Column({ type: 'varchar', length: 100 })
   status: string;

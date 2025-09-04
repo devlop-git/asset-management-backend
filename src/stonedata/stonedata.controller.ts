@@ -66,4 +66,10 @@ export class StonedataController {
         // }
 
     }
+
+     @Get('dfe/fetch-save')
+    async fetchAndSaveDFEStockData() {
+        // This will fetch DFE stock data and save it to Postgres
+        return await this.stoneDataService.fetchAndSaveDFEStockData();
+    }
 }

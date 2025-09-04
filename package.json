@@ -21,7 +21,7 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "npm run typeorm -- migration:generate -d src/database/data-source.ts",
     "migration:create": "npm run typeorm -- migration:create",
-    "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
+    "migration:run": "npm run typeorm -- migration:run -d src/database/postgres-data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts"
   },
   "dependencies": {
