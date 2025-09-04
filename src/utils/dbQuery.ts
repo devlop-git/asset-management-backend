@@ -1,11 +1,11 @@
 export const labStoneQuery = (diamondCodes:any)=>{
     const formatted = diamondCodes.map(code => `'${code}'`).join(",");
     const query = `
-    SELECT *
+    SELECT t2.image_url ,t2.video_url ,t2.cert 
         FROM nj_lab_price0   t1
         LEFT JOIN nj_lab_price_description t2
         ON t1.stone_price_id = t2.stone_price_id 
-        where t1.diamond_code  in (${diamondCodes});
+        where t1.diamond_code  in (${formatted});
     `
     return query
 }
@@ -13,11 +13,11 @@ export const labStoneQuery = (diamondCodes:any)=>{
 export const naturalStoneQuery = (diamondCodes:any)=>{
     const formatted = diamondCodes.map(code => `'${code}'`).join(",");
     const query = `
-    SELECT *
+    SELECT t2.image_url ,t2.video_url ,t2.cert 
         FROM nj_stone_price0   t1
         LEFT JOIN nj_stone_price_description t2
         ON t1.stone_price_id = t2.stone_price_id 
-        where t1.diamond_code  in (${diamondCodes});
+        where t1.diamond_code  in (${formatted});
     `
     return query
 }

@@ -1,6 +1,6 @@
 export const getDiamondCodes = (stoneData: any) => {
     const result = { lab: [], natural: [] };
-    
+
     stoneData.forEach(item => {
         const parts = item.StockID.split(" "); // ["IGI", "LG717596099"]
         const lab = parts[0];
@@ -24,5 +24,6 @@ export const getDiamondCodes = (stoneData: any) => {
     });
 
     console.log(result);
+    return result;
 
 };

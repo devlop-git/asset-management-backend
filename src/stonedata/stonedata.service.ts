@@ -5,7 +5,10 @@ import { DataSource } from 'typeorm';
 @Injectable()
 export class StonedataService {
 
-    constructor(@Inject('MsSqlDataSource') private readonly dataSource: DataSource) { }
+    constructor(
+        @Inject('MsSqlDataSource') private readonly dataSource: DataSource,
+        @Inject('DFRDataSource') private readonly dfrDataSource: DataSource
+    ) { }
     async getDFEStockData() {
         try {
             const result = await this.dataSource.query(dfeStoneQuery());
@@ -16,12 +19,11 @@ export class StonedataService {
         }
     }
 
-    async getDFRStoneData(diamond_codes:any) {
+    async getDFRStoneData(labDiamondIds:any,naturalDiamondIds:any) {
         try {
-            const labData = await this.dataSource.query(labStoneQuery(diamond_codes));
-            const naturalData = await this.dataSource.query(naturalStoneQuery(diamond_codes));
+            const labData = await this.dfrDataSource.query(labStoneQuery(labDiamondIds));
+            const naturalData = await this.dfrDataSource.query(naturalStoneQuery(naturalDiamondIds));
 
-            console.log(labData,naturalData);
             return {labData,naturalData};
         }
         catch (e) {
