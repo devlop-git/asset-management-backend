@@ -175,4 +175,8 @@ export class StonedataService {
       totalPages: Math.ceil(total / pageSize),
     };
   }
+    async getStonedataByCertificateNo(certificateNo: string) {
+        const repo = this.pgDataSource.getRepository(Stonedata);
+        return await repo.findOne({ where: { certificate_no: certificateNo } });
+    }
 }
