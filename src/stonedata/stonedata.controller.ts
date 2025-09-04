@@ -89,7 +89,13 @@ export class StonedataController {
         const pageSizeNum = parseInt(pageSize, 10) || 20;
         return await this.stoneDataService.getPaginatedIgiList(pageNum, pageSizeNum);
     }
-
+    @Get('stone-details')
+    async getStoneDetails(@Query('certificate_no') certificateNo: string) {
+        if (!certificateNo) {
+            return { error: 'certificate_no query param is required' };
+        }
+        return await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+    }
     @Post('upload-media')
     @UseInterceptors(FileInterceptor('media'))
     async uploadMedia(
