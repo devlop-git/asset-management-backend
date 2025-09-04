@@ -72,7 +72,8 @@ export class StonedataController {
     async fetchAndSaveDFEStockData() {
         // This will fetch DFE stock data and save it to Postgres
         return await this.stoneDataService.fetchAndSaveDFEStockData();
-      
+    } 
+    
     @Post('upload-media')
     @UseInterceptors(FileInterceptor('media'))
     async uploadMedia(
