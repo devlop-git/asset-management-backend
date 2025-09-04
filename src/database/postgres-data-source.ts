@@ -10,15 +10,25 @@ const configService = new ConfigService();
 export const PostgresDataSource = new DataSource({
   type: 'postgres',
   host: configService.get('POSTGRES_HOST'),
-  port: configService.get('POSTGRES_PORT'),
+  port: Number(configService.get('POSTGRES_PORT')),
   username: configService.get('POSTGRES_USERNAME'),
   password: configService.get('POSTGRES_PASSWORD'),
   database: configService.get('POSTGRES_DATABASE'),
-  entities: ['src/**/*.entity.ts'],
-  migrations: ['src/database/migrations/*.ts'],
-  synchronize: false, // MUST be false when using migrations
-  logging: true, // Enable logging to see what's happening
-  migrationsTableName: 'migrations', // Name of the table that tracks migrations
+  entities:
+    [
+      (process.env.NODE_ENV || 'production') === 'production'
+        ? path.join(__dirname, '..', '..', 'dist', '**', '*.entity.js')
+        : path.join(__dirname, '..', '..', 'src', '**', '*.entity.ts'),
+    ],
+  migrations:
+    [
+      (process.env.NODE_ENV || 'production') === 'production'
+        ? path.join(__dirname, '..', '..', 'dist', 'database', 'migrations', '*.js')
+        : path.join(__dirname, '..', '..', 'src', 'database', 'migrations', '*.ts'),
+    ],
+  synchronize: false,
+  logging: true,
+  migrationsTableName: 'migrations',
 });
 
 export const initializePostgres = async (): Promise<DataSource> => {
