@@ -1,8 +1,19 @@
-import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors,Query } from '@nestjs/common';
-import { StonedataService } from './stonedata.service';
-import { getDiamondCodes } from 'src/utils/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-
+import {
+    Body,
+    Controller,
+    Get,
+    Post,
+    Req,
+    UploadedFile,
+    UseInterceptors,
+    Query,
+  } from '@nestjs/common';
+  import { StonedataService } from './stonedata.service';
+  import { FileInterceptor } from '@nestjs/platform-express';
+  import * as path from 'path';
+  import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
+  import { config } from 'dotenv';
+  config();
 @Controller('stonedata')
 export class StonedataController {
     constructor(private readonly stoneDataService: StonedataService) { }
@@ -98,18 +109,18 @@ export class StonedataController {
     }
     @Post('upload-media')
     @UseInterceptors(FileInterceptor('media'))
-    async uploadMedia(
-        @Body() body: any,
-        @UploadedFile() media:any
-    ) {
-        // If you want to see all form-data fields, including files and text fields
-        console.log('Uploaded file (media):', media);
-        console.log('Form fields (body):', body);
-     
-
-        return {
-            message: 'Media uploaded successfully',
-           
-        };
+    async uploadMedia(@Body() body: any, @UploadedFile() media: any) {
+      const diamond_code = '1234567890';
+      const ext = path.extname(media.originalname);
+      const { type } = body;
+  
+  
+      const destination = `${type}`; // GCP path
+      const filename = `${diamond_code}${ext}`;
+      const publicUrl = fileUploadToGCP(destination, filename, media);
+      return {
+        file: publicUrl,
+        message: 'Media uploaded successfully',
+      };
     }
 }
