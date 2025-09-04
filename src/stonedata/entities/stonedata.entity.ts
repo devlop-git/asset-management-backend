@@ -6,7 +6,7 @@ export class Stonedata {
   id: number;
 
   @Column({ type: 'varchar', length: 100 })
-  certficate_no: string;
+  certificate_no: string;
 
   @Column({ type: 'varchar', length: 100 })
   shape: string;
