@@ -6,6 +6,7 @@ import { dfeStoneQuery, labStoneQuery, naturalStoneQuery } from 'src/utils/dbQue
 import { DataSource } from 'typeorm';
 import { Stock } from './entities/stock.entity';
 import { getStockStonedataJoinQuery } from '../utils/dbQuery';
+import { StoneSearchDto } from './stonedata.controller';
 
 
 @Injectable()
@@ -99,7 +100,7 @@ export class StonedataService {
                 const parts = item.StockID.split(' ');
                 cert = parts.length > 1 ? parts[1] : item.StockID;
             }
-            stock.certficate_no = cert;
+            stock.certificate_no = cert;
             stock.order_received_date = item.OrderRecdDate ? new Date(item.OrderRecdDate) : null;
             stock.diamond_received_date = item.DiaRequestDate ? new Date(item.DiaRequestDate) : null;
             stock.purity_name = item.PurityNm || '';
@@ -179,4 +180,118 @@ export class StonedataService {
         const repo = this.pgDataSource.getRepository(Stonedata);
         return await repo.findOne({ where: { certificate_no: certificateNo } });
     }
+
+    async searchStonedata(filters: StoneSearchDto, page: number, pageSize: number) {
+    const offset = (page - 1) * pageSize;
+    const where: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    // Strictly use only DTO fields
+    if (filters.tag_no) {
+      where.push(`s.tag_no ILIKE $${paramIndex}`);
+      params.push(`%${filters.tag_no}%`);
+      paramIndex++;
+    }
+    if (filters.certificate_type && filters.certificate_type.length) {
+      where.push(`s.lab = ANY($${paramIndex})`);
+      params.push(filters.certificate_type);
+      paramIndex++;
+    }
+    if (filters.certificate_no && filters.certificate_no.length) {
+      where.push(`s.certificate_no = ANY($${paramIndex})`);
+      params.push(filters.certificate_no);
+      paramIndex++;
+    }
+    if (filters.stone_type && filters.stone_type.length) {
+      where.push(`s.stone_type = ANY($${paramIndex})`);
+      params.push(filters.stone_type);
+      paramIndex++;
+    }
+    if (filters.shape && filters.shape.length) {
+      where.push(`sd.shape = ANY($${paramIndex})`);
+      params.push(filters.shape);
+      paramIndex++;
+    }
+    if (filters.carat_from != null && filters.carat_to != null) {
+      where.push(`s.carat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+      params.push(filters.carat_from, filters.carat_to);
+      paramIndex += 2;
+    }
+    if (filters.color && filters.color.length) {
+      where.push(`sd.color = ANY($${paramIndex})`);
+      params.push(filters.color);
+      paramIndex++;
+    }
+    if (filters.clarity && filters.clarity.length) {
+      where.push(`sd.clarity = ANY($${paramIndex})`);
+      params.push(filters.clarity);
+      paramIndex++;
+    }
+    if (filters.cut && filters.cut.length) {
+      where.push(`sd.cut = ANY($${paramIndex})`);
+      params.push(filters.cut);
+      paramIndex++;
+    }
+    if (filters.polish && filters.polish.length) {
+      where.push(`sd.polish = ANY($${paramIndex})`);
+      params.push(filters.polish);
+      paramIndex++;
+    }
+    if (filters.symmetry && filters.symmetry.length) {
+      where.push(`sd.symmetry = ANY($${paramIndex})`);
+      params.push(filters.symmetry);
+      paramIndex++;
+    }
+    if (filters.fluorescence && filters.fluorescence.length) {
+      where.push(`sd.fluorescence = ANY($${paramIndex})`);
+      params.push(filters.fluorescence);
+      paramIndex++;
+    }
+    if (filters.intensity && filters.intensity.length) {
+      where.push(`sd.intensity = ANY($${paramIndex})`);
+      params.push(filters.intensity);
+      paramIndex++;
+    }
+
+    let whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const baseQuery = `
+      SELECT
+        sd.tag_no,
+        s.lab AS "CertificateType",
+        s.certificate_no AS "CertificateNo",
+        s.stone_type AS "StoneType",
+        sd.shape AS "Shape",
+        sd.carat AS "CaratAvgWt",
+        sd.color AS "Color",
+        sd.clarity AS "Clarity",
+        sd.cut AS "Cut",
+        sd.polish AS "Polish",
+        sd.symmetry AS "Symmetry",
+        sd.fluorescence AS "Fluorescence",
+        sd.intensity AS "Intensity"
+      FROM stock s
+      LEFT JOIN stonedata sd
+        ON s.certificate_no = sd.certificate_no
+      ${whereClause}
+    `;
+    console.log("Base Query:", baseQuery);
+    // Get total count
+    const countQuery = `SELECT COUNT(*) FROM stock s LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no ${whereClause}`;
+    const totalResult = await this.pgDataSource.query(countQuery, params);
+    const total = parseInt(totalResult[0].count, 10);
+
+    // Get paginated data
+    const dataQuery = `${baseQuery} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const dataParams = [...params, pageSize, offset];
+    const data = await this.pgDataSource.query(dataQuery, dataParams);
+
+    return {
+      data,
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
 }

@@ -1,7 +1,26 @@
-import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors,Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
 import { StonedataService } from './stonedata.service';
 import { getDiamondCodes } from 'src/utils/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+export class StoneSearchDto {
+    tag_no?: string;
+    certificate_type?: string[];
+    certificate_no?: string[];
+    stone_type?: string[];
+    shape?: string[];
+    carat_from?: number;
+    carat_to?: number;
+    color?: string[];
+    clarity?: string[];
+    cut?: string[];
+    polish?: string[];
+    symmetry?: string[];
+    fluorescence?: string[];
+    intensity?: string[];
+    page?: number;
+    pageSize?: number;
+}
 
 @Controller('stonedata')
 export class StonedataController {
@@ -100,16 +119,20 @@ export class StonedataController {
     @UseInterceptors(FileInterceptor('media'))
     async uploadMedia(
         @Body() body: any,
-        @UploadedFile() media:any
+        @UploadedFile() media: any
     ) {
         // If you want to see all form-data fields, including files and text fields
         console.log('Uploaded file (media):', media);
         console.log('Form fields (body):', body);
-     
-
         return {
             message: 'Media uploaded successfully',
-           
         };
+    }
+
+    @Get('search')
+    async searchStonedata(@Query() query: StoneSearchDto) {
+        const page = query.page || 1;
+        const pageSize = query.pageSize || 20;
+        return await this.stoneDataService.searchStonedata(query, page, pageSize);
     }
 }

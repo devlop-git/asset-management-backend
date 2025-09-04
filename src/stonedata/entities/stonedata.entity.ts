@@ -44,6 +44,17 @@ export class Stonedata {
   @Column({ type: 'varchar', length: 100 })
   lab: string;
 
+  @Column({ type: 'varchar', length: 100 })
+  stone_type: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  tag_no: string;
+
+  @Column({ type: 'float' })
+  carat: number;
+
+  @Column({ type: 'varchar', length: 100 })
+  intensity: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

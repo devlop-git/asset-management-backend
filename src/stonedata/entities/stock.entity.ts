@@ -15,7 +15,7 @@ export class Stock {
   status: string;
 
   @Column({ type: 'varchar', length: 100 })
-  certficate_no: string;
+  certificate_no: string;
 
   @Column({ type: 'timestamp' })
   order_received_date: Date;
