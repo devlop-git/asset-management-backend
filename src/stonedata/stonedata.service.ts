@@ -187,70 +187,87 @@ export class StonedataService {
     const params: any[] = [];
     let paramIndex = 1;
 
+    // Helper to ensure array for multi-value filters
+    const toArray = (val) => {
+      if (val == null) return undefined;
+      return Array.isArray(val) ? val : [val];
+    };
+
     // Strictly use only DTO fields
     if (filters.tag_no) {
       where.push(`s.tag_no ILIKE $${paramIndex}`);
       params.push(`%${filters.tag_no}%`);
       paramIndex++;
     }
-    if (filters.certificate_type && filters.certificate_type.length) {
+    const certTypeArr = toArray(filters.certificate_type);
+    if (certTypeArr && certTypeArr.length) {
       where.push(`s.lab = ANY($${paramIndex})`);
-      params.push(filters.certificate_type);
+      params.push(certTypeArr);
       paramIndex++;
     }
-    if (filters.certificate_no && filters.certificate_no.length) {
+    const certNoArr = toArray(filters.certificate_no);
+    if (certNoArr && certNoArr.length) {
       where.push(`s.certificate_no = ANY($${paramIndex})`);
-      params.push(filters.certificate_no);
+      params.push(certNoArr);
       paramIndex++;
     }
-    if (filters.stone_type && filters.stone_type.length) {
+    const stoneTypeArr = toArray(filters.stone_type);
+    if (stoneTypeArr && stoneTypeArr.length) {
       where.push(`s.stone_type = ANY($${paramIndex})`);
-      params.push(filters.stone_type);
+      params.push(stoneTypeArr);
       paramIndex++;
     }
-    if (filters.shape && filters.shape.length) {
+    const shapeArr = toArray(filters.shape);
+    if (shapeArr && shapeArr.length) {
       where.push(`sd.shape = ANY($${paramIndex})`);
-      params.push(filters.shape);
+      params.push(shapeArr);
       paramIndex++;
     }
     if (filters.carat_from != null && filters.carat_to != null) {
-      where.push(`s.carat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+      where.push(`s.avg_weight BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
       params.push(filters.carat_from, filters.carat_to);
       paramIndex += 2;
     }
-    if (filters.color && filters.color.length) {
+    const colorArr = toArray(filters.color);
+    if (colorArr && colorArr.length) {
       where.push(`sd.color = ANY($${paramIndex})`);
-      params.push(filters.color);
+      params.push(colorArr);
       paramIndex++;
     }
-    if (filters.clarity && filters.clarity.length) {
+    const clarityArr = toArray(filters.clarity);
+    if (clarityArr && clarityArr.length) {
       where.push(`sd.clarity = ANY($${paramIndex})`);
-      params.push(filters.clarity);
+      params.push(clarityArr);
       paramIndex++;
     }
-    if (filters.cut && filters.cut.length) {
+    const cutArr = toArray(filters.cut);
+    if (cutArr && cutArr.length) {
       where.push(`sd.cut = ANY($${paramIndex})`);
-      params.push(filters.cut);
+      params.push(cutArr);
       paramIndex++;
     }
-    if (filters.polish && filters.polish.length) {
+    const polishArr = toArray(filters.polish);
+    if (polishArr && polishArr.length) {
       where.push(`sd.polish = ANY($${paramIndex})`);
-      params.push(filters.polish);
+      params.push(polishArr);
       paramIndex++;
     }
-    if (filters.symmetry && filters.symmetry.length) {
+    const symmetryArr = toArray(filters.symmetry);
+    if (symmetryArr && symmetryArr.length) {
       where.push(`sd.symmetry = ANY($${paramIndex})`);
-      params.push(filters.symmetry);
+      params.push(symmetryArr);
       paramIndex++;
     }
-    if (filters.fluorescence && filters.fluorescence.length) {
+    const fluorescenceArr = toArray(filters.fluorescence);
+    if (fluorescenceArr && fluorescenceArr.length) {
       where.push(`sd.fluorescence = ANY($${paramIndex})`);
-      params.push(filters.fluorescence);
+      params.push(fluorescenceArr);
       paramIndex++;
     }
-    if (filters.intensity && filters.intensity.length) {
+    const intensityArr = toArray(filters.intensity);
+    if (intensityArr && intensityArr.length) {
       where.push(`sd.intensity = ANY($${paramIndex})`);
-      params.push(filters.intensity);
+      params.push(intensityArr);
       paramIndex++;
     }
 
@@ -262,7 +279,7 @@ export class StonedataService {
         s.certificate_no AS "CertificateNo",
         s.stone_type AS "StoneType",
         sd.shape AS "Shape",
-        sd.carat AS "CaratAvgWt",
+        sd.carat AS "Carat",
         sd.color AS "Color",
         sd.clarity AS "Clarity",
         sd.cut AS "Cut",
@@ -275,23 +292,37 @@ export class StonedataService {
         ON s.certificate_no = sd.certificate_no
       ${whereClause}
     `;
-    console.log("Base Query:", baseQuery);
-    // Get total count
-    const countQuery = `SELECT COUNT(*) FROM stock s LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no ${whereClause}`;
-    const totalResult = await this.pgDataSource.query(countQuery, params);
-    const total = parseInt(totalResult[0].count, 10);
 
-    // Get paginated data
-    const dataQuery = `${baseQuery} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    const dataParams = [...params, pageSize, offset];
-    const data = await this.pgDataSource.query(dataQuery, dataParams);
+    // Error handling
+    try {
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM stock s LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no ${whereClause}`;
+      const totalResult = await this.pgDataSource.query(countQuery, params);
+      const total = parseInt(totalResult[0].count, 10);
 
-    return {
-      data,
-      page,
-      pageSize,
-      total,
-      totalPages: Math.ceil(total / pageSize),
-    };
+      // Get paginated data
+      const dataQuery = `${baseQuery} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      const dataParams = [...params, pageSize, offset];
+      const data = await this.pgDataSource.query(dataQuery, dataParams);
+
+      return {
+        success: true,
+        data,
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || error,
+        data: [],
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 0,
+      };
+    }
   }
 }
