@@ -9,7 +9,7 @@ const configService = new ConfigService();
 export const DFRDataSource = new DataSource({
   type: 'mysql',
   host: configService.get('DFR_HOST') || '88.80.185.122',
-  port: configService.get<number>('DFR_PORT') || 3306,
+  port: Number(configService.get<number>('DFR_PORT')) || 3306,
   username: configService.get('DFR_USERNAME') || 'dfredesign_db_r',
   password: configService.get('DFR_PASSWORD') || 'cbIBfdqDdctC',
   database: configService.get('DFR_DATABASE') || 'stone_db',

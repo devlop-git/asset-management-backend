@@ -9,7 +9,7 @@ const configService = new ConfigService();
 export const MsSqlDataSource = new DataSource({
   type: 'mssql',
   host: configService.get('MSSQL_HOST') || '94.237.48.126',
-  port: configService.get<number>('MSSQL_PORT') || 1433,
+  port: Number(configService.get<number>('MSSQL_PORT')) || 1433,
   username: configService.get('MSSQL_USERNAME') || 'dfe_admin',
   password: configService.get('MSSQL_PASSWORD') || 'erp@123#qwert',
   database: configService.get('MSSQL_DATABASE') || 'DFELive',
