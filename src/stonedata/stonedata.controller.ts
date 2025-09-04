@@ -3,21 +3,9 @@ import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors, Query 
 import { StonedataService } from './stonedata.service';
 import { getDiamondCodes } from 'src/utils/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-    Body,
-    Controller,
-    Get,
-    Post,
-    Req,
-    UploadedFile,
-    UseInterceptors,
-    Query,
-  } from '@nestjs/common';
-  import { StonedataService } from './stonedata.service';
-  import { FileInterceptor } from '@nestjs/platform-express';
-  import * as path from 'path';
-  import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
-  import { config } from 'dotenv';
+import * as path from 'path';
+import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
+import { config } from 'dotenv';
   config();
 export class StoneSearchDto {
     tag_no?: string;
