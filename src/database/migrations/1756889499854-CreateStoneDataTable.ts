@@ -13,7 +13,7 @@ export class CreateStoneDataTable1756889499854 implements MigrationInterface {
                         isPrimary: true,
                     },
                     {
-                        name: "certficate_no",
+                        name: "certificate_no",
                         type: "varchar",
                         length: "100",
                         isNullable: false,
@@ -105,6 +105,29 @@ export class CreateStoneDataTable1756889499854 implements MigrationInterface {
                         name: "is_active",
                         type: "boolean",
                         isNullable: false,
+                    },
+                    {
+                        name: "stone_type",
+                        type: "varchar",
+                        length: "100",
+                        isNullable: true,
+                    },
+                    {
+                        name: "tag_no",
+                        type: "varchar",
+                        length: "100",
+                        isNullable: true,
+                    },
+                    {
+                        name: "carat",
+                        type: "float",
+                        isNullable: true,
+                    },
+                    {
+                        name: "intensity",
+                        type: "varchar",
+                        length: "100",
+                        isNullable: true,
                     },
                 ],
             }),

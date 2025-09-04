@@ -1,19 +1,32 @@
-import {
-    Body,
-    Controller,
-    Get,
-    Post,
-    Req,
-    UploadedFile,
-    UseInterceptors,
-    Query,
-  } from '@nestjs/common';
-  import { StonedataService } from './stonedata.service';
-  import { FileInterceptor } from '@nestjs/platform-express';
-  import * as path from 'path';
-  import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
-  import { config } from 'dotenv';
+
+import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
+import { StonedataService } from './stonedata.service';
+import { getDiamondCodes } from 'src/utils/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as path from 'path';
+import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
+import { config } from 'dotenv';
   config();
+export class StoneSearchDto {
+    tag_no?: string;
+    certificate_type?: string[];
+    certificate_no?: string[];
+    stone_type?: string[];
+    shape?: string[];
+    carat_from?: number;
+    carat_to?: number;
+    color?: string[];
+    clarity?: string[];
+    cut?: string[];
+    polish?: string[];
+    symmetry?: string[];
+    fluorescence?: string[];
+    intensity?: string[];
+    page?: number;
+    pageSize?: number;
+}
+
+
 @Controller('stonedata')
 export class StonedataController {
     constructor(private readonly stoneDataService: StonedataService) { }
@@ -29,22 +42,7 @@ export class StonedataController {
         return await this.stoneDataService.fetchAndSaveDFEStockData();
     }
 
- @Post('upload-media')
-    @UseInterceptors(FileInterceptor('media'))
-    async uploadMedia(@Body() body: any, @UploadedFile() media: any) {
-      const diamond_code = '12345678923';
-      const ext = path.extname(media.originalname);
-      const { type } = body;
-  
-  
-      const destination = `${type}`; // GCP path
-      const filename = `${diamond_code}${ext}`;
-      const publicUrl = fileUploadToGCP(destination, filename, media);
-      return {
-        file: publicUrl,
-        message: 'Media uploaded successfully',
-      };
-    }
+
 
 
     @Post('create-stonedata')
@@ -68,5 +66,28 @@ export class StonedataController {
             return { error: 'certificate_no query param is required' };
         }
         return await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+    }
+    @Post('upload-media')
+    @UseInterceptors(FileInterceptor('media'))
+    async uploadMedia(@Body() body: any, @UploadedFile() media: any) {
+      const diamond_code = '1234567890';
+      const ext = path.extname(media.originalname);
+      const { type } = body;
+  
+  
+      const destination = `${type}`; // GCP path
+      const filename = `${diamond_code}${ext}`;
+      const publicUrl = fileUploadToGCP(destination, filename, media);
+      return {
+        file: publicUrl,
+        message: 'Media uploaded successfully',
+      };
+    }
+
+    @Get('search')
+    async searchStonedata(@Query() query: StoneSearchDto) {
+        const page = query.page || 1;
+        const pageSize = query.pageSize || 20;
+        return await this.stoneDataService.searchStonedata(query, page, pageSize);
     }
 }

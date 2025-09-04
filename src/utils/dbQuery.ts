@@ -59,7 +59,7 @@ export function getStockStonedataJoinQuery() {
   return `
     SELECT
       s.lab AS "CertificateType",
-      s.certficate_no AS "CertificateNo",
+      s.certificate_no AS "CertificateNo",
       s.stone_type AS "StoneType",
       sd.shape AS "Shape",
       s.avg_weight AS "CaratAvgWt",
@@ -71,7 +71,7 @@ export function getStockStonedataJoinQuery() {
       sd.fluorescence AS "Fluorescence"
     FROM stock s
     LEFT JOIN stonedata sd
-      ON s.certficate_no = sd.certificate_no
+      ON s.certificate_no = sd.certificate_no
     WHERE s.is_active = true
       AND s.stock LIKE 'IGI %'
   `;
