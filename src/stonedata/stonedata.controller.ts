@@ -7,6 +7,6 @@ export class StonedataController {
 
     @Get('dfe')
     async getData() {
-        return this.stoneDataService.getDiamondData();
+        return this.stoneDataService.getDFEStockData();
     }
 }

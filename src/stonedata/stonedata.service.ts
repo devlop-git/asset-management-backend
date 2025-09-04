@@ -1,42 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { dfeStoneQuery, labStoneQuery, naturalStoneQuery } from 'src/utils/dbQuery';
 import { DataSource } from 'typeorm';
 
 @Injectable()
 export class StonedataService {
 
     constructor(@Inject('MsSqlDataSource') private readonly dataSource: DataSource) { }
-    async getDiamondData() {
+    async getDFEStockData() {
         try {
-            const query = `
-      SELECT TOP 10
-          dds.*,
-          acs."ItemName",
-          acs."ItemTypeNM",
-          acs."TagNo",
-          acs."CostPrice",
-          acsb."RawMaterialTypeNm",
-          acs."ProductID",
-          acsb."StockBOMID"
-      FROM "DiamondDemandSheet" dds
-      INNER JOIN "AcCurrentStock" acs
-          ON dds."OrderNo" = acs."OrderNo"
-      INNER JOIN "AcCurrentStockBOM" acsb
-          ON acs."StockID" = acsb."StockID"
-      WHERE acsb."RawMaterialTypeNm" IN ('Diamond','Lab-created diamond')
-        AND dds."Status" IN (
-              'Received',
-              'Vendor Assign',
-              'Vendor Assign Internatioanly',
-              'Vendor Assign Internationally',
-              'Order Placed'
-          )
-        AND dds."AvgWt" > 0.17
-        AND dds."StockID" IS NOT NULL
-      ORDER BY dds."OrderRecdDate" DESC
-    `;
-
-            const result = await this.dataSource.query(query);
+            const result = await this.dataSource.query(dfeStoneQuery());
             return result;
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+
+    async getDFRStoneData(diamond_codes:any) {
+        try {
+            const labData = await this.dataSource.query(labStoneQuery(diamond_codes));
+            const naturalData = await this.dataSource.query(naturalStoneQuery(diamond_codes));
+
+            console.log(labData,naturalData);
+            return {labData,naturalData};
         }
         catch (e) {
             console.log(e);
