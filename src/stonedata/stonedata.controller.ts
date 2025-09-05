@@ -16,6 +16,7 @@ import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
 import { config } from 'dotenv';
 import { get } from 'http';
 import { getConstant } from 'src/utils/constant';
+import { ConfigService } from '@nestjs/config';
 config();
 export class StoneSearchDto {
   tag_no?: string;
@@ -38,7 +39,10 @@ export class StoneSearchDto {
 
 @Controller('stonedata')
 export class StonedataController {
-  constructor(private readonly stoneDataService: StonedataService) {}
+  constructor(
+    private readonly stoneDataService: StonedataService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('dfe')
   async getData() {
@@ -74,9 +78,41 @@ export class StonedataController {
     if (!certificateNo) {
       return { error: 'certificate_no query param is required' };
     }
-    return await this.stoneDataService.getStonedataByCertificateNo(
-      certificateNo,
-    );
+    let stoneDetails;
+    try {
+      stoneDetails = await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+    } catch (err) {
+      // Log error and return a user-friendly message
+      console.error('Error fetching stone details:', err);
+      return { error: 'Failed to fetch stone details.' };
+    }
+
+    if (!stoneDetails) {
+      return null;
+    }
+
+    // Helper to check and prefix URLs if needed
+    const prefixUrl = (url: string) => {
+      if (!url) return url;
+      if (typeof url !== 'string') return url;
+      if (url.startsWith('https://')) return url;
+      // Use a public path or base URL from config, fallback to just returning the url
+      const bucket = this.configService.get('ASSET_URL') || '';
+      return `${bucket}/${url}`;
+    };
+
+    // List of fields to check for URL prefixing
+    const urlFields = ['image_url', 'video_url', 'cert_url', 'pdf_url'];
+
+    // Clone the object to avoid mutating the original
+    const result = { ...stoneDetails };
+    for (const field of urlFields) {
+      if (result[field]) {
+        result[field] = prefixUrl(result[field]);
+      }
+    }
+
+    return result;
   }
   @Post('upload-media')
   @UseInterceptors(FileInterceptor('media'))
@@ -86,7 +122,7 @@ export class StonedataController {
         return { error: 'No media file uploaded.' };
       }
       const ext = path.extname(media.originalname);
-      const { type, diamond_code, stone_id,certificate_url } = body;
+      const { type, diamond_code, stone_id, certificate_url } = body;
 
       if (type && diamond_code && stone_id) {
         const destination = `${type.trim()}`; // GCP path
@@ -100,7 +136,7 @@ export class StonedataController {
           fileUrl: uploadedPath,
           isOriginal: true,
           isManualUpload: true,
-          certificate_url
+          certificate_url,
         });
         return {
           imageurl: publicUrl,
