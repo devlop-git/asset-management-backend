@@ -25,6 +25,12 @@ export class CreateStockTable1756889510922 implements MigrationInterface {
                         isNullable: false,
                     },
                     {
+                        name: "tag_no",
+                        type: "varchar",
+                        length: "100",
+                        isNullable: false,
+                    },
+                    {
                         name: "status",
                         type: "varchar",
                         length: "100",

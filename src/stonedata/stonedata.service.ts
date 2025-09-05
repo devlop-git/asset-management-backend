@@ -83,7 +83,7 @@ export class StonedataService {
         },
       ]),
     );
-    console.log(dfrMap);
+  
     return stoneData.map((stone: any) => {
       const [labName, code] = stone.StockID.split(" ");
       const isLab = stone.StoneType.toLowerCase().includes("lab");
@@ -101,7 +101,6 @@ export class StonedataService {
     });
 
   }
-
 
   async saveDiamondDataToPostgres(diamondDataArray: any[]) {
     const stockRepo = this.pgDataSource.getRepository(Stock);
@@ -121,7 +120,7 @@ export class StonedataService {
       stock.purity_name = item.PurityNm || '';
       stock.avg_weight = item.AvgWt || 0;
       stock.pieces = item.Pcs || 0;
-      stock.stone_type = item.StoneType || '';
+      stock.stone_type = Array.isArray(item.StoneType) ? item.StoneType[0] : (item.StoneType || '');
       stock.lab = item.LabNm || '';
       stock.supplier = item.SupplierName || '';
       stock.dfr_supplier = item.DFR_SupplierName || '';
@@ -129,11 +128,13 @@ export class StonedataService {
       stock.dfr_cert = item.DFR_CertificateNo || '';
       stock.is_certified_stone = true;
       stock.is_active = true;
+      stock.tag_no = item.TagNo || '';
       return stock;
     });
     await stockRepo.save(stocks);
     return stocks;
   }
+
 
   async createStonedataFromStock() {
     const stockRepo = this.pgDataSource.getRepository(Stock);
@@ -142,14 +143,14 @@ export class StonedataService {
 
     for (const stock of allStocks) {
       const parts = (stock.stock || '').split(' ');
-      console.log("parts:", parts);
+      console.log("stock:", stock);
       console.log(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
       if (parts[0].toUpperCase() === 'IGI' && parts[1]) {
         try {
           const igiData = await getIgiReport(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
           // Map igiData to stonedata entity fields
           const stonedata = stonedataRepo.create({
-            certificate_no: String(igiData.certificate_no ?? ''), // Use correct property name as per Stonedata entity
+            certificate_no: String(igiData.certificate_no ?? ''),
             lab: String(igiData.lab ?? ''),
             shape: String(igiData.shape ?? ''),
             measurement: String(igiData.measurement ?? ''),
@@ -160,10 +161,13 @@ export class StonedataService {
             polish: String(igiData.polish ?? ''),
             symmetry: String(igiData.symmetry ?? ''),
             girdle: String(igiData.girdle ?? ''),
-            // Remove 'culet' if not defined in Stonedata entity
             depth: typeof igiData.depth === 'number' ? igiData.depth : Number(igiData.depth) || 0,
             table: String(igiData.table ?? ''),
             is_active: true,
+            tag_no: String(stock.tag_no ?? ''),
+            stone_type: Array.isArray(stock.stone_type) ? stock.stone_type.join(', ') : String(stock.stone_type ?? ''),
+            carat: typeof igiData.carat === 'number' ? igiData.carat : Number(igiData.carat) || 0,
+            intensity: String(igiData.intensity ?? ''),
             // add other fields as needed
           });
           await stonedataRepo.save(stonedata);
@@ -222,9 +226,13 @@ export class StonedataService {
     }
     const certNoArr = toArray(filters.certificate_no);
     if (certNoArr && certNoArr.length) {
-      where.push(`s.certificate_no = ANY($${paramIndex})`);
-      params.push(certNoArr);
-      paramIndex++;
+      // Use ILIKE for partial/regex search
+      const certNoConditions = certNoArr.map((val, idx) => {
+        params.push(`%${val}%`);
+        return `s.certificate_no ILIKE $${paramIndex + idx}`;
+      });
+      where.push(`(${certNoConditions.join(' OR ')})`);
+      paramIndex += certNoArr.length;
     }
     const stoneTypeArr = toArray(filters.stone_type);
     if (stoneTypeArr && stoneTypeArr.length) {
