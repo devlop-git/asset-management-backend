@@ -7,6 +7,7 @@ import { DataSource } from 'typeorm';
 import { Stock } from './entities/stock.entity';
 import { getStockStonedataJoinQuery } from '../utils/dbQuery';
 import { StoneSearchDto } from './stonedata.controller';
+import { Media } from './entities/media.entity';
 
 
 @Injectable()
@@ -358,6 +359,87 @@ export class StonedataService {
         total: 0,
         totalPages: 0,
       };
+    }
+  }
+
+
+
+  //insert media
+
+  async upsertMediaForStone({
+    stone_id,
+    type,
+    fileUrl,
+    isOriginal = true,
+    isManualUpload = true,
+  }: {
+    stone_id: number,
+    type: string | 'videos' | 'images' | 'pdf',
+    fileUrl: string,
+    isOriginal?: boolean,
+    isManualUpload?: boolean,
+  }) {
+    const mediaRepo = this.pgDataSource.getRepository(Media);
+
+    // Check if a media record already exists for the given stone_id
+    let media = await mediaRepo.findOne({ where: { stonedata: { id: stone_id } } });
+    // Prepare fields to update or set based on type
+    const updateFields: any = {
+      is_manual_upload: isManualUpload,
+      is_active: true,
+      updated_at: new Date(),
+    };
+    if (type === 'videos') {
+      updateFields.video_url = fileUrl;
+      updateFields.is_video_original = isOriginal;
+    } else if (type === 'images') {
+      updateFields.image_url = fileUrl;
+      updateFields.is_image_original = isOriginal;
+    } else if (type === 'pdf') {
+      updateFields.cert_url = fileUrl;
+      updateFields.is_certified_stone = isOriginal;
+    }
+    if (media) {
+      // If media exists for stone_id, update the record
+      Object.assign(media, updateFields);
+      await mediaRepo.save(media);
+      return { updated: true, media };
+    } else {
+   
+      const stonedataRepo = this.pgDataSource.getRepository(Stonedata);
+      const stonedata = await stonedataRepo.findOne({ where: { id: stone_id } });
+      if (!stonedata) {
+        throw new Error(`Stonedata with id ${stone_id} not found`);
+      }
+      // Set default values for all fields
+      const newMedia: any = {
+        stonedata: stonedata,
+        stone_id: stone_id,
+        is_manual_upload: isManualUpload,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        image_url: null,
+        is_image_original: false,
+        video_url: null,
+        is_video_original: false,
+        cert_url: null,
+        is_certified_stone: false,
+      };
+      
+      // Set the appropriate field based on type
+      if (type === 'videos') {
+        newMedia.video_url = fileUrl;
+        newMedia.is_video_original = isOriginal;
+      } else if (type === 'images') {
+        newMedia.image_url = fileUrl;
+        newMedia.is_image_original = isOriginal;
+      } else if (type === 'pdf') {
+        newMedia.cert_url = fileUrl;
+        newMedia.is_certified_stone = isOriginal;
+      }
+      const saved = await mediaRepo.save(mediaRepo.create(newMedia));
+      return { created: true, media: saved };
     }
   }
 }
