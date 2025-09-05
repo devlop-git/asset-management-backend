@@ -24,11 +24,12 @@ export const naturalStoneQuery = (diamondCodes:any)=>{
 
 export const dfeStoneQuery = ()=>{
     const query = `
-    SELECT TOP 1000
+    SELECT TOP 100
           dds.*,
           acs."ItemName",
           acs."ItemTypeNM",
           acs."TagNo",
+          dds."StoneType",
           acs."CostPrice",
           acsb."RawMaterialTypeNm",
           acs."ProductID",

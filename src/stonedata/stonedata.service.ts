@@ -29,6 +29,7 @@ export class StonedataService {
     async fetchAndSaveDFEStockData() {
         try {
             const result = await this.getDFEStockData();
+            // console.log("result",result)
             return await this.saveDiamondDataToPostgres(result);
         } catch (e) {
             console.log(e);
@@ -89,75 +90,80 @@ export class StonedataService {
 
 
     async saveDiamondDataToPostgres(diamondDataArray: any[]) {
-        const stockRepo = this.pgDataSource.getRepository(Stock);
-        const stocks: Stock[] = diamondDataArray.map(item => {
-            const stock = new Stock();
-            stock.stock = item.StockID || 0;
-            stock.orderid = item.OrderNo || 0;
-            stock.status = item.Status || '';
-            let cert = '';
-            if (item.StockID) {
-                const parts = item.StockID.split(' ');
-                cert = parts.length > 1 ? parts[1] : item.StockID;
-            }
-            stock.certificate_no = cert;
-            stock.order_received_date = item.OrderRecdDate ? new Date(item.OrderRecdDate) : null;
-            stock.diamond_received_date = item.DiaRequestDate ? new Date(item.DiaRequestDate) : null;
-            stock.purity_name = item.PurityNm || '';
-            stock.avg_weight = item.AvgWt || 0;
-            stock.pieces = item.Pcs || 0;
-            stock.stone_type = item.StoneType || '';
-            stock.lab = item.LabNm || '';
-            stock.supplier = item.SupplierName || '';
-            stock.dfr_supplier = item.DFR_SupplierName || '';
-            stock.dfr_vendor = item.DFR_Vendor || '';
-            stock.dfr_cert = item.DFR_CertificateNo || '';
-            stock.is_certified_stone = true;
-            stock.is_active = true;
-            return stock;
-        });
-        await stockRepo.save(stocks);
-        return stocks;
+    const stockRepo = this.pgDataSource.getRepository(Stock);
+    const stocks: Stock[] = diamondDataArray.map(item => {
+      const stock = new Stock();
+      stock.stock = item.StockID || 0;
+      stock.orderid = item.OrderNo || 0;
+      stock.status = item.Status || '';
+      let cert = '';
+      if (item.StockID) {
+        const parts = item.StockID.split(' ');
+        cert = parts.length > 1 ? parts[1] : item.StockID;
+      }
+      stock.certificate_no = cert;
+      stock.order_received_date = item.OrderRecdDate ? new Date(item.OrderRecdDate) : null;
+      stock.diamond_received_date = item.DiaRequestDate ? new Date(item.DiaRequestDate) : null;
+      stock.purity_name = item.PurityNm || '';
+      stock.avg_weight = item.AvgWt || 0;
+      stock.pieces = item.Pcs || 0;
+      stock.stone_type = Array.isArray(item.StoneType) ? item.StoneType[0] : (item.StoneType || '');
+      stock.lab = item.LabNm || '';
+      stock.supplier = item.SupplierName || '';
+      stock.dfr_supplier = item.DFR_SupplierName || '';
+      stock.dfr_vendor = item.DFR_Vendor || '';
+      stock.dfr_cert = item.DFR_CertificateNo || '';
+      stock.is_certified_stone = true;
+      stock.is_active = true;
+      stock.tag_no = item.TagNo || '';
+      return stock;
+    });
+    await stockRepo.save(stocks);
+    return stocks;
     }
+
 
     async createStonedataFromStock() {
-        const stockRepo = this.pgDataSource.getRepository(Stock);
-        const stonedataRepo = this.pgDataSource.getRepository(Stonedata);
-        const allStocks = await stockRepo.find();
+    const stockRepo = this.pgDataSource.getRepository(Stock);
+    const stonedataRepo = this.pgDataSource.getRepository(Stonedata);
+    const allStocks = await stockRepo.find();
 
-        for (const stock of allStocks) {
-            const parts = (stock.stock || '').split(' ');
-            console.log("parts:", parts);
-            console.log(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
-            if (parts[0].toUpperCase() === 'IGI' && parts[1]) {
-                try {
-                    const igiData = await getIgiReport(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
-                    // Map igiData to stonedata entity fields
-                    const stonedata = stonedataRepo.create({
-                        certificate_no: String(igiData.certificate_no ?? ''), // Use correct property name as per Stonedata entity
-                        lab: String(igiData.lab ?? ''),
-                        shape: String(igiData.shape ?? ''),
-                        measurement: String(igiData.measurement ?? ''),
-                        color: String(igiData.color ?? ''),
-                        clarity: String(igiData.clarity ?? ''),
-                        cut: String(igiData.cut ?? ''),
-                        fluorescence: String(igiData.fluorescence ?? ''),
-                        polish: String(igiData.polish ?? ''),
-                        symmetry: String(igiData.symmetry ?? ''),
-                        girdle: String(igiData.girdle ?? ''),
-                        // Remove 'culet' if not defined in Stonedata entity
-                        depth: typeof igiData.depth === 'number' ? igiData.depth : Number(igiData.depth) || 0,
-                        table: String(igiData.table ?? ''),
-                        is_active: true,
-                        // add other fields as needed
-                    });
-                    await stonedataRepo.save(stonedata);
-                } catch (e) {
-                    console.error(`Failed for cert ${parts[1]}:`, e);
-                }
-            }
+    for (const stock of allStocks) {
+      const parts = (stock.stock || '').split(' ');
+      console.log("stock:", stock);
+      console.log(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
+      if (parts[0].toUpperCase() === 'IGI' && parts[1]) {
+        try {
+          const igiData = await getIgiReport(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
+          // Map igiData to stonedata entity fields
+          const stonedata = stonedataRepo.create({
+            certificate_no: String(igiData.certificate_no ?? ''),
+            lab: String(igiData.lab ?? ''),
+            shape: String(igiData.shape ?? ''),
+            measurement: String(igiData.measurement ?? ''),
+            color: String(igiData.color ?? ''),
+            clarity: String(igiData.clarity ?? ''),
+            cut: String(igiData.cut ?? ''),
+            fluorescence: String(igiData.fluorescence ?? ''),
+            polish: String(igiData.polish ?? ''),
+            symmetry: String(igiData.symmetry ?? ''),
+            girdle: String(igiData.girdle ?? ''),
+            depth: typeof igiData.depth === 'number' ? igiData.depth : Number(igiData.depth) || 0,
+            table: String(igiData.table ?? ''),
+            is_active: true,
+            tag_no: String(stock.tag_no ?? ''),
+            stone_type: Array.isArray(stock.stone_type) ? stock.stone_type.join(', ') : String(stock.stone_type ?? ''),
+            carat: typeof igiData.carat === 'number' ? igiData.carat : Number(igiData.carat) || 0,
+            intensity: String(igiData.intensity ?? ''),
+            // add other fields as needed
+          });
+          await stonedataRepo.save(stonedata);
+        } catch (e) {
+          console.error(`Failed for cert ${parts[1]}:`, e);
         }
+      }
     }
+  }
 
     async getPaginatedIgiList(page: number = 1, pageSize: number = 20) {
     const offset = (page - 1) * pageSize;
@@ -207,9 +213,13 @@ export class StonedataService {
     }
     const certNoArr = toArray(filters.certificate_no);
     if (certNoArr && certNoArr.length) {
-      where.push(`s.certificate_no = ANY($${paramIndex})`);
-      params.push(certNoArr);
-      paramIndex++;
+      // Use ILIKE for partial/regex search
+      const certNoConditions = certNoArr.map((val, idx) => {
+        params.push(`%${val}%`);
+        return `s.certificate_no ILIKE $${paramIndex + idx}`;
+      });
+      where.push(`(${certNoConditions.join(' OR ')})`);
+      paramIndex += certNoArr.length;
     }
     const stoneTypeArr = toArray(filters.stone_type);
     if (stoneTypeArr && stoneTypeArr.length) {

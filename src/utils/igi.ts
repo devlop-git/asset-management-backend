@@ -52,6 +52,7 @@ export interface DiamondReport {
   shape: string | null;
   measurement: string | null;
   caratWeight: number | null;
+  carat: number | null;
   color: string | null;
   clarity: string | null;
   cut: string | null;
@@ -62,6 +63,7 @@ export interface DiamondReport {
   culet: string | null;
   depth: number | null;
   table: number | null;
+  intensity: string | null;
   note?: string;
 }
 
@@ -83,6 +85,8 @@ export function parseDiamondReport(text: string): DiamondReport {
     measurement:
       get(/Measurements?\s*[:\-]?\s*([\d.\s\-–xX]+mm)/i),
     caratWeight:
+      getNum(/(?:Carat\s*Weight|Weight)\s*[:\-]?\s*([\d.]+)\s*(?:ct|carat)/i),
+    carat:
       getNum(/(?:Carat\s*Weight|Weight)\s*[:\-]?\s*([\d.]+)\s*(?:ct|carat)/i),
     color:
       get(/Color(?:\s*Grade)?\s*[:\-]?\s*([A-Za-z0-9 \-]+)(?:\n|$)/i),
@@ -108,6 +112,8 @@ export function parseDiamondReport(text: string): DiamondReport {
       /Table\s*[:\-]?\s*([\d.]+)\s*%/i,  
       /([\d.]+)\s*%\s*Table/i            
     ),
+    intensity:
+      get(/Intensity\s*[:\-]?\s*([A-Za-z0-9 \-]+)/i),
   };
 }
 
