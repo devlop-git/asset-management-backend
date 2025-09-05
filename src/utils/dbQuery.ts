@@ -77,3 +77,9 @@ export function getStockStonedataJoinQuery() {
   `;
 }
 
+export const getStoneVendorQuery = (diamondCodes:any) => {
+  const formatted = diamondCodes.map(code => `'${code}'`).join(",");
+  const query= `Select * from Demand_APIResult_VendorOrder where cert in (${formatted})`;
+  return query;
+};
+
