@@ -2,6 +2,11 @@ import { Stonedata } from './entities/stonedata.entity';
 import { getIgiReport } from '../utils/igi';
 import { Inject, Injectable } from '@nestjs/common';
 import { getDiamondCodes } from 'src/utils/common';
+import { downloadMedia, detectVideoType, processVideo } from '../utils/mediaProcessor';
+import { fileUploadToGCP } from '../utils/gcpFileUpload';
+import { Media } from './entities/media.entity';
+import * as fs from 'fs';
+import * as path from 'path';
 import { dfeStoneQuery, getStoneVendorQuery, labStoneQuery, naturalStoneQuery } from 'src/utils/dbQuery';
 import { DataSource } from 'typeorm';
 import { Stock } from './entities/stock.entity';
@@ -360,4 +365,101 @@ export class StonedataService {
       };
     }
   }
+ async automateMediaProcessingAndUpload() {
+    const mediaRepo = this.pgDataSource.getRepository(Media);
+    const stonedataRepo = this.pgDataSource.getRepository(Stonedata);
+    // Ensure tmp directory exists
+    const tmpDir = path.join(__dirname, '../../tmp');
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+    }
+    const stones = await this.formatStoneData();
+    console.log("stones",stones.length);
+      for (const stone of stones) {
+        const { certificate_no, video_url, image_url, diamondCode } = stone;
+        // Skip stones with missing certificate_no
+        if (!certificate_no) {
+          console.warn('Skipping stone with missing certificate_no:', stone);
+          continue;
+        }
+        // Only process if there is a video_url or image_url
+        if (!video_url && !image_url) continue;
+
+      let gcpVideoUrl = null;
+      if (video_url) {
+        const videoType = detectVideoType(video_url);
+        const localVideoPath = path.join(__dirname, `../../tmp/${diamondCode}_video.mp4`);
+        let processedVideoPath = localVideoPath;
+        try {
+          await downloadMedia(video_url, localVideoPath);
+          // Use correct output filename for processed video
+          if (videoType === 'loupe') {
+            processedVideoPath = localVideoPath.endsWith('.mp4')
+              ? localVideoPath.replace(/\.mp4$/, '_loupe.mp4')
+              : localVideoPath + '_loupe.mp4';
+          } else if (videoType === 'vv360') {
+            processedVideoPath = localVideoPath.endsWith('.mp4')
+              ? localVideoPath.replace(/\.mp4$/, '_vv360.mp4')
+              : localVideoPath + '_vv360.mp4';
+          }
+          if (videoType === 'loupe' || videoType === 'vv360') {
+              const result = await processVideo(localVideoPath, videoType);
+              console.log('processVideo result:', result);
+          }
+          console.log("localVideoPath....",localVideoPath);
+          console.log("processedVideoPath....",processedVideoPath);
+          // Only upload if processed file exists
+          if (fs.existsSync(processedVideoPath)) {
+            const videoBuffer = fs.readFileSync(processedVideoPath);
+            gcpVideoUrl = await fileUploadToGCP('videos', path.basename(processedVideoPath), { buffer: videoBuffer });
+              console.log('GCP video URL:', gcpVideoUrl);
+          } else {
+            console.error(`Processed video not found: ${processedVideoPath}`);
+          }
+        } catch (err) {
+          console.error(`Video processing failed for ${diamondCode}:`, err);
+        }
+      }
+
+      let gcpImageUrl = null;
+      if (image_url) {
+        const localImagePath = path.join(__dirname, `../../tmp/${diamondCode}_image.jpg`);
+        try {
+          await downloadMedia(image_url, localImagePath);
+          if (fs.existsSync(localImagePath)) {
+            const imageBuffer = fs.readFileSync(localImagePath);
+            gcpImageUrl = await fileUploadToGCP('images', `${diamondCode}_image.jpg`, { buffer: imageBuffer });
+          } else {
+            console.error(`Downloaded image not found: ${localImagePath}`);
+          }
+        } catch (err) {
+          console.error(`Image download/upload failed for ${diamondCode}:`, err);
+        }
+      }
+
+      // Find stone_id for certificate_no
+      const stoneEntity = await stonedataRepo.findOne({ where: { certificate_no: String(certificate_no) } });
+      if (!stoneEntity) continue;
+      console.log({
+        stonedata: stoneEntity,
+        video_url: gcpVideoUrl,
+        image_url: gcpImageUrl,
+        is_video_original: !!gcpVideoUrl,
+        is_image_original: !!gcpImageUrl,
+        is_certified_stone: true,
+      })
+      // Save to media table
+      const media = mediaRepo.create({
+        stonedata: stoneEntity,
+        video_url: gcpVideoUrl,
+        image_url: gcpImageUrl,
+        is_video_original: !!gcpVideoUrl,
+        is_image_original: !!gcpImageUrl,
+        is_certified_stone: true,
+      });
+      await mediaRepo.save(media);
+    }
+    return { success: true };
+  }
+
 }

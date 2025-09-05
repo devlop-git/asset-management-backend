@@ -1,5 +1,7 @@
 import * as pdfParse from 'pdf-parse';
-import fetch from 'node-fetch';
+
+// Use dynamic import for node-fetch to support ESM in CommonJS
+const fetch = (...args: [any, any?]) => import('node-fetch').then(mod => mod.default(...args));
 
 export async function getIgiCertUrl(certNumber: string | number, key: string = process.env.IGI_SUBSCRIPTION_KEY || ''): Promise<string> {
 //   if (!/^\d{6,}$/.test(String(certNumber))) throw new Error('Invalid certificate number');

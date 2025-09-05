@@ -33,9 +33,15 @@ export class StoneSearchDto {
 export class StonedataController {
     constructor(private readonly stoneDataService: StonedataService) { }
 
+
     @Get('dfe')
     async getData() {
         return await this.stoneDataService.formatStoneData();
+    }
+
+    @Post('automate-media')
+    async automateMedia() {
+        return await this.stoneDataService.automateMediaProcessingAndUpload();
     }
 
     @Get('dfe/fetch-save')
