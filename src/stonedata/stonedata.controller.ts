@@ -6,6 +6,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import * as path from 'path';
 import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
 import { config } from 'dotenv';
+import { get } from 'http';
+import { getConstant } from 'src/utils/constant';
   config();
 export class StoneSearchDto {
     tag_no?: string;
@@ -89,5 +91,10 @@ export class StonedataController {
         const page = query.page || 1;
         const pageSize = query.pageSize || 20;
         return await this.stoneDataService.searchStonedata(query, page, pageSize);
+    }
+
+    @Get('filterData')
+    async getFilterData() {
+        return getConstant;
     }
 }
