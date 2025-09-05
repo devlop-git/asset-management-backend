@@ -372,12 +372,14 @@ export class StonedataService {
     fileUrl,
     isOriginal = true,
     isManualUpload = true,
+    certificate_url=null
   }: {
     stone_id: number,
     type: string | 'videos' | 'images' | 'pdf',
     fileUrl: string,
     isOriginal?: boolean,
     isManualUpload?: boolean,
+    certificate_url?:null | string
   }) {
     const mediaRepo = this.pgDataSource.getRepository(Media);
 
@@ -396,8 +398,12 @@ export class StonedataService {
       updateFields.image_url = fileUrl;
       updateFields.is_image_original = isOriginal;
     } else if (type === 'pdf') {
-      updateFields.cert_url = fileUrl;
-      updateFields.is_certified_stone = isOriginal;
+      updateFields.pdf_url = fileUrl;
+    }
+
+    if(certificate_url){
+      updateFields.cert_url = certificate_url;
+      updateFields.is_certified_stone = true
     }
     if (media) {
       // If media exists for stone_id, update the record

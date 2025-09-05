@@ -86,7 +86,7 @@ export class StonedataController {
         return { error: 'No media file uploaded.' };
       }
       const ext = path.extname(media.originalname);
-      const { type, diamond_code, stone_id } = body;
+      const { type, diamond_code, stone_id,certificate_url } = body;
 
       if (type && diamond_code && stone_id) {
         const destination = `${type.trim()}`; // GCP path
@@ -100,6 +100,7 @@ export class StonedataController {
           fileUrl: uploadedPath,
           isOriginal: true,
           isManualUpload: true,
+          certificate_url
         });
         return {
           imageurl: publicUrl,
