@@ -31,7 +31,6 @@ export const dfeStoneQuery = ()=>{
           acs."ItemName",
           acs."ItemTypeNM",
           acs."TagNo",
-          dds."StoneType",
           acs."CostPrice",
           acsb."RawMaterialTypeNm",
           acs."ProductID",
