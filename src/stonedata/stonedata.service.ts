@@ -441,8 +441,12 @@ export class StonedataService {
         newMedia.image_url = fileUrl;
         newMedia.is_image_original = isOriginal;
       } else if (type === 'pdf') {
-        newMedia.cert_url = fileUrl;
-        newMedia.is_certified_stone = isOriginal;
+        newMedia.pdf_url = fileUrl;
+      }
+
+      if(certificate_url){
+        updateFields.cert_url = certificate_url;
+        updateFields.is_certified_stone = true
       }
       const saved = await mediaRepo.save(mediaRepo.create(newMedia));
       return { created: true, media: saved };
