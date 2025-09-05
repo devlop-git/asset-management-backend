@@ -196,8 +196,20 @@ export class StonedataService {
     };
   }
   async getStonedataByCertificateNo(certificateNo: string) {
-    const repo = this.pgDataSource.getRepository(Stonedata);
-    return await repo.findOne({ where: { certificate_no: certificateNo } });
+    const query = `
+     SELECT
+      s.id AS stock_id,
+      sd.id AS stone_id,
+      m.id AS media_id,
+      s.*, sd.*, m.*
+    FROM stock s
+    LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no
+    LEFT JOIN media m ON sd.id = m.stone_id
+    WHERE s.certificate_no ILIKE $1
+    LIMIT 1
+    `;
+    const result = await this.pgDataSource.query(query, [ `%${certificateNo}%` ]);
+    return result[0] || null;
   }
 
   async searchStonedata(filters: StoneSearchDto, page: number, pageSize: number) {
