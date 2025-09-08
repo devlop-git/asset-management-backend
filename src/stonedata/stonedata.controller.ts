@@ -8,7 +8,9 @@ import { fileUploadToGCP } from 'src/utils/gcpFileUpload';
 import { config } from 'dotenv';
 import { get } from 'http';
 import { getConstant } from 'src/utils/constant';
-  config();
+import { handleVideo } from 'src/utils/mediaProcessor';
+import { getIgiCertUrl } from 'src/utils/igi';
+config();
 export class StoneSearchDto {
     tag_no?: string;
     certificate_type?: string[];
@@ -41,7 +43,18 @@ export class StonedataController {
 
     @Post('automate-media')
     async automateMedia() {
-        return await this.stoneDataService.automateMediaProcessingAndUpload();
+        // return await this.stoneDataService.automateMediaProcessingAndUpload();
+        const url = 'https://nivoda-inhousemedia.s3.amazonaws.com/inhouse-360-6117790152';
+        const cert = 'LG234567524';
+        return await handleVideo(cert, url);
+    }
+
+    @Post('fetchPDFUrl')
+    async fetchPDFUrl() {
+        // return await this.stoneDataService.automateMediaProcessingAndUpload();
+        // const url = 'https://nivoda-inhousemedia.s3.amazonaws.com/inhouse-360-6117790152';
+        const cert = '674526500';
+        return  getIgiCertUrl(cert);
     }
 
     @Get('dfe/fetch-save')
@@ -78,18 +91,18 @@ export class StonedataController {
     @Post('upload-media')
     @UseInterceptors(FileInterceptor('media'))
     async uploadMedia(@Body() body: any, @UploadedFile() media: any) {
-      const diamond_code = '1234567890';
-      const ext = path.extname(media.originalname);
-      const { type } = body;
-  
-  
-      const destination = `${type}`; // GCP path
-      const filename = `${diamond_code}${ext}`;
-      const publicUrl = fileUploadToGCP(destination, filename, media);
-      return {
-        file: publicUrl,
-        message: 'Media uploaded successfully',
-      };
+        const diamond_code = '1234567890';
+        const ext = path.extname(media.originalname);
+        const { type } = body;
+
+
+        const destination = `${type}`; // GCP path
+        const filename = `${diamond_code}${ext}`;
+        const publicUrl = fileUploadToGCP(destination, filename, media);
+        return {
+            file: publicUrl,
+            message: 'Media uploaded successfully',
+        };
     }
 
     @Get('search')
@@ -102,5 +115,11 @@ export class StonedataController {
     @Get('filterData')
     async getFilterData() {
         return getConstant;
+    }
+
+    @Get('upload-assets')
+    async uploadAsset() {
+        const data = await this.stoneDataService.insertMediaData()
+        return data;
     }
 }

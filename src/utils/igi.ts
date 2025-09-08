@@ -26,6 +26,7 @@ export async function getIgiCertUrl(certNumber: string | number, key: string = p
   try { const j = JSON.parse(text); if (j && typeof j.url === 'string') return j.url; } catch {}
   const url = text.trim();
   if (!/^https?:\/\//i.test(url)) throw new Error(`Unexpected IGI response: ${text.slice(0,200)}`);
+  console.log('IGI PDF URL:', url);
   return url;
 }
 
