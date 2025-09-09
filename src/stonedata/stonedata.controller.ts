@@ -9,7 +9,6 @@ import { config } from 'dotenv';
 import { get } from 'http';
 import { getConstant } from 'src/utils/constant';
 import { handleVideo } from 'src/utils/mediaProcessor';
-import { getIgiCertUrl } from 'src/utils/igi';
 config();
 export class StoneSearchDto {
     tag_no?: string;
@@ -35,7 +34,6 @@ export class StoneSearchDto {
 export class StonedataController {
     constructor(private readonly stoneDataService: StonedataService) { }
 
-
     @Get('dfe')
     async getData() {
         return await this.stoneDataService.formatStoneData();
@@ -49,22 +47,11 @@ export class StonedataController {
         return await handleVideo(cert, url);
     }
 
-    @Post('fetchPDFUrl')
-    async fetchPDFUrl() {
-        // return await this.stoneDataService.automateMediaProcessingAndUpload();
-        // const url = 'https://nivoda-inhousemedia.s3.amazonaws.com/inhouse-360-6117790152';
-        const cert = '674526500';
-        return  getIgiCertUrl(cert);
-    }
-
     @Get('dfe/fetch-save')
     async fetchAndSaveDFEStockData() {
         // This will fetch DFE stock data and save it to Postgres
         return await this.stoneDataService.fetchAndSaveDFEStockData();
     }
-
-
-
 
     @Post('create-stonedata')
     async createStonedataFromStockApi() {
@@ -81,6 +68,7 @@ export class StonedataController {
         const pageSizeNum = parseInt(pageSize, 10) || 20;
         return await this.stoneDataService.getPaginatedIgiList(pageNum, pageSizeNum);
     }
+
     @Get('stone-details')
     async getStoneDetails(@Query('certificate_no') certificateNo: string) {
         if (!certificateNo) {
@@ -88,6 +76,7 @@ export class StonedataController {
         }
         return await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
     }
+    
     @Post('upload-media')
     @UseInterceptors(FileInterceptor('media'))
     async uploadMedia(@Body() body: any, @UploadedFile() media: any) {

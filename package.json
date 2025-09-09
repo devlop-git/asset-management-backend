@@ -37,6 +37,7 @@
     "mysql": "^2.18.1",
     "node-fetch": "^2.7.0",
     "pdf-parse": "^1.1.1",
+    "pdf2json": "^3.2.0",
     "pg": "^8.16.3",
     "puppeteer": "^24.19.0",
     "reflect-metadata": "^0.2.0",

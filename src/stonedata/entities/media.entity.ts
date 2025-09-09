@@ -13,23 +13,23 @@ export class Media {
   @Column({ type: 'varchar', length: 255 })
   image_url: string;
 
-  @Column({ type: 'boolean' })
-  is_image_original: boolean;
+  @Column({ type: 'boolean' ,default: false})
+  is_image_original: boolean=false;
 
   @Column({ type: 'varchar', length: 255 })
   video_url: string;
 
-  @Column({ type: 'boolean' })
-  is_video_original: boolean;
+  @Column({ type: 'boolean',default: false })
+  is_video_original: boolean=false;
 
   @Column({ type: 'varchar', length: 255 })
   cert_url: string;
 
-  @Column({ type: 'boolean' })
-  is_certified_stone: boolean;
+  @Column({ type: 'boolean',default: true })
+  is_certified_stone: boolean=true;
 
-  @Column({ type: 'boolean' })
-  is_manual_upload: boolean;
+  @Column({ type: 'boolean',default: false })
+  is_manual_upload: boolean=false;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
@@ -37,6 +37,6 @@ export class Media {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at: Date;
 
-  @Column({ type: 'boolean' })
-  is_active: boolean;
+  @Column({ type: 'boolean',default: true })
+  is_active: boolean=true;
 }

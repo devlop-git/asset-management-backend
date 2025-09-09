@@ -5,6 +5,7 @@ import { processVideo } from 'src/scripts/loupevideo';
 import { fileUploadToGCP } from './gcpFileUpload';
 import { captureVV360Video } from 'src/scripts/v360pipe';
 
+
 export async function downloadMedia(url: string, dest: string): Promise<string> {
   const writer = fs.createWriteStream(dest);
   const response = await axios({
@@ -26,7 +27,7 @@ export function detectVideoType(url: string): 'loupe' | 'vv360' | 'other' {
 }
 
 export const  handleImage =async(cert, image_url)=> {
-    let gcpImageUrl = null;
+    let gcpImageUrl ;
       if (image_url) {
         const localImagePath = path.join(__dirname, `../../tmp/${cert}_image.jpg`);
         try {
