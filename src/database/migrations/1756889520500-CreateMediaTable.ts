@@ -9,20 +9,21 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                 columns: [
                     {
                         name: "id",
-                        type: "serial",
+                        type: "int",
                         isPrimary: true,
+                        isGenerated: true,
+                        generationStrategy: "increment",
                     },
                     {
                         name: "stone_id",
-                        type: "integer",
+                        type: "int",
                         isNullable: false,
                         isUnique: true, // OneToOne relation
                     },
                     {
                         name: "image_url",
-                        type: "varchar",
-                        length: "255",
-                        isNullable: false,
+                        type: "text",
+                        isNullable: true,
                     },
                     {
                         name: "is_image_original",
@@ -31,9 +32,8 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                     },
                     {
                         name: "video_url",
-                        type: "varchar",
-                        length: "255",
-                        isNullable: false,
+                        type: "text",
+                        isNullable: true,
                     },
                     {
                         name: "is_video_original",
@@ -42,9 +42,8 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                     },
                     {
                         name: "cert_url",
-                        type: "varchar",
-                        length: "255",
-                        isNullable: false,
+                        type: "text",
+                        isNullable: true,
                     },
                     {
                         name: "is_certified_stone",
@@ -71,7 +70,13 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                     {
                         name: "is_active",
                         type: "boolean",
-                        isNullable: false,
+                        isNullable: true,
+                    },
+                    {
+                        name: "pdf_url",
+                        type: "varchar",
+                        length: "255",
+                        isNullable: true,
                     },
                 ],
                 foreignKeys: [
@@ -81,6 +86,11 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                         referencedColumnNames: ["id"]
                     },
                 ],
+                uniques: [
+                    {
+                        columnNames: ["stone_id"]
+                    }
+                ]
             }),
             true
         );

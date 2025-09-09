@@ -1,9 +1,6 @@
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { config } from 'dotenv';
 import * as path from 'path';
-
-config();
 
 const configService = new ConfigService();
 
@@ -14,6 +11,7 @@ export const PostgresDataSource = new DataSource({
   username: configService.get('POSTGRES_USERNAME'),
   password: configService.get('POSTGRES_PASSWORD'),
   database: configService.get('POSTGRES_DATABASE'),
+  
   entities:
     [
       (process.env.NODE_ENV || 'production') === 'production'
@@ -29,6 +27,7 @@ export const PostgresDataSource = new DataSource({
   synchronize: false,
   logging: true,
   migrationsTableName: 'migrations',
+  
 });
 
 export const initializePostgres = async (): Promise<DataSource> => {

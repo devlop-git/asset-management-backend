@@ -1,0 +1,55 @@
+# Role Management API Endpoints
+
+# 1. Create a new role
+curl --location 'http://localhost:3000/role' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+--data-raw '{
+    "name": "admin",
+    "description": "Administrator role with full access",
+    "status": 1
+}'
+
+# 2. Get all roles
+curl --location 'http://localhost:3000/role' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# 3. Get a specific role by ID
+curl --location 'http://localhost:3000/role/1' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# 4. Update a role
+curl --location --request PATCH 'http://localhost:3000/role/1' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+--data-raw '{
+    "name": "super_admin",
+    "description": "Super administrator role with enhanced privileges",
+    "status": 1
+}'
+
+# 5. Delete a role
+curl --location --request DELETE 'http://localhost:3000/role/1' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Example role data for testing:
+# {
+#     "name": "manager",
+#     "description": "Manager role with limited access",
+#     "status": 1
+# }
+#
+# {
+#     "name": "user",
+#     "description": "Regular user role",
+#     "status": 1
+# }
+#
+# {
+#     "name": "guest",
+#     "description": "Guest role with read-only access",
+#     "status": 0
+# }
+
+# Note: Replace YOUR_JWT_TOKEN with actual JWT token obtained from login
+# Status: 1 = active, 0 = inactive
