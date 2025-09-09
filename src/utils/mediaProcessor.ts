@@ -35,16 +35,20 @@ export const  handleImage =async(cert, image_url)=> {
           if (fs.existsSync(localImagePath)) {
             const imageBuffer = fs.readFileSync(localImagePath);
             gcpImageUrl = await fileUploadToGCP('images', `${cert}_image.jpg`, { buffer: imageBuffer });
+            return gcpImageUrl;
           } else {
             console.error(`Downloaded image not found: ${localImagePath}`);
+            return null;
           }
         } catch (err) {
           console.error(`Image download/upload failed for ${cert}:`, err);
+          return null;
         }
       }
   }
 
   export const  handleVideo=async(cert, videoURL)=> {
+    console.log("videoURL....", videoURL);
     if (!videoURL) return null;
 
     const videoType = detectVideoType(videoURL);
@@ -77,7 +81,6 @@ export const  handleImage =async(cert, image_url)=> {
           debug: true
         }); // process with URL, output path, fps
         console.log("Processed video saved at:", processedVideoPath);
-        return null;
       }
 
       // Upload to GCP if processed file exists

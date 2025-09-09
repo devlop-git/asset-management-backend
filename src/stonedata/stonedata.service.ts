@@ -1,7 +1,7 @@
 import { Stonedata } from './entities/stonedata.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import { getDiamondCodes } from 'src/utils/common';
-import { downloadMedia, detectVideoType } from '../utils/mediaProcessor';
+import { downloadMedia, detectVideoType, handleVideo, handleImage } from '../utils/mediaProcessor';
 import { fileUploadToGCP } from '../utils/gcpFileUpload';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -154,7 +154,7 @@ export class StonedataService {
 
     allStocks.forEach(async (stock: any) => {
       const parts = (stock.stock || '').split(' ');
-      const cert =parts[1];
+      const cert = parts[1];
       const lab = parts[0];
       console.log("stock:", stock);
       console.log(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
@@ -403,28 +403,66 @@ export class StonedataService {
       };
     }
   }
+
   async automateMediaProcessingAndUpload() {
-    
     // Ensure tmp directory exists
     const tmpDir = path.join(__dirname, '../../tmp');
     if (!fs.existsSync(tmpDir)) {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    // Fetch stones from DB
-    const stoneData = await this.stoneRepo.find();
+    // Fetch stones from DB with relation
+    const stoneData = await this.mediaRepo.find({
+      relations: ['stonedata']
+    });
 
-    // Get vendor data
-    const diamondIds = stoneData.map(item => item.certificate_no);
+    // Get certificate numbers from stones
+    const diamondIds = stoneData
+      .map(item => item?.stonedata?.certificate_no)
+      .filter(Boolean); // remove undefined/null
+
+    // Get vendor data for these diamonds
     const dfrData = await this.getDFEVendorStoneData(diamondIds);
- 
-    for (const stone of dfrData) {
-      const { imageURl, videoURL, cert } = stone;
-     
-    }
-    return { success: true };
-  }
 
+    // Create a lookup map for faster access by certificate number
+    const dfrMap = new Map<string, any>();
+    dfrData.forEach(item => {
+      if (item.cert) {
+        dfrMap.set(item.cert, item);
+      }
+    });
+
+    // Filter stones that have matching data in dfrMap
+    const filteredStones = stoneData.filter(item => {
+      const certNo = item?.stonedata?.certificate_no;
+      return certNo && dfrMap.has(certNo);
+    });
+
+    // Loop over filtered stones and process
+    const processedMedia = await Promise.all(filteredStones.map(async (stone: any) => {
+    
+      const certNo = stone.stonedata.certificate_no;
+      const vendorData = dfrMap.get(certNo);
+    
+      const {imageURL,videoURL} = vendorData
+
+      const videoUrl = await handleVideo(certNo, videoURL)
+      const imageUrl = await handleImage(certNo, imageURL)
+
+      const mediaEntity = {
+        image_url: imageUrl,
+        video_url: videoUrl
+      }
+      await this.mediaRepo.update(stone.id, mediaEntity);
+      
+      return mediaEntity;
+      // Implement your media processing and upload logic here
+      // Example:
+      // await this.processMedia(stone, vendorData);
+    }));
+
+    return processedMedia;
+  }
 
 
 

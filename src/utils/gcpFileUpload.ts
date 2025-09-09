@@ -22,7 +22,7 @@ export async function fileUploadToGCP(
     const bucketName = configService.get('GCP_PUBLIC_BUCKET');
     console.log("file",filename)
     console.log("destination....",destinationPath)
-    console.log('GCP_PUBLIC_BUCKET:', bucketName);
+
     const file = storage.bucket(bucketName).file(destinationPath+'/'+filename);
     // console.log(file,'file')
     await file.save(media.buffer, {

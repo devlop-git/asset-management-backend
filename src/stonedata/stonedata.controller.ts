@@ -7,6 +7,7 @@ import {
     UploadedFile,
     UseInterceptors,
     Query,
+    Inject,
 } from '@nestjs/common';
 import { StonedataService } from './stonedata.service';
 import { getDiamondCodes } from 'src/utils/common';
@@ -18,6 +19,9 @@ import { get } from 'http';
 import { getConstant } from 'src/utils/constant';
 import { handleVideo } from 'src/utils/mediaProcessor';
 import { ConfigService } from '@nestjs/config';
+import { DataSource, Repository } from 'typeorm';
+import { Stonedata } from './entities/stonedata.entity';
+import { Media } from './entities/media.entity';
 config();
 export class StoneSearchDto {
     tag_no?: string;
@@ -40,10 +44,16 @@ export class StoneSearchDto {
 
 @Controller('stonedata')
 export class StonedataController {
+    private stoneRepo: Repository<Stonedata>;
+    private mediaRepo: Repository<Media>;
     constructor(
         private readonly stoneDataService: StonedataService,
         private readonly configService: ConfigService,
-    ) { }
+        @Inject('PostgresDataSource') private readonly pgDataSource: DataSource,
+    ) {
+        this.stoneRepo = this.pgDataSource.getRepository(Stonedata);
+        this.mediaRepo = this.pgDataSource.getRepository(Media);
+    }
 
     @Get('dfe')
     async getData() {
@@ -74,7 +84,7 @@ export class StonedataController {
             pageSizeNum,
         );
     }
-    
+
     @Get('stone-details')
     async getStoneDetails(@Query('certificate_no') certificateNo: string) {
         if (!certificateNo) {
@@ -94,9 +104,10 @@ export class StonedataController {
     @Post('automate-media')
     async automateMedia() {
         // return await this.stoneDataService.automateMediaProcessingAndUpload();
-        const url = 'https://nivoda-inhousemedia.s3.amazonaws.com/inhouse-360-6117790152';
-        const cert = 'LG234567524';
-        return await handleVideo(cert, url);
+        // const url = 'https://nivoda-inhousemedia.s3.amazonaws.com/inhouse-360-6117790152';
+        // const cert = 'LG234567524';
+        // return await handleVideo(cert, url);
+        return await this.stoneDataService.automateMediaProcessingAndUpload();
     }
 
     @Post('upload-media')
@@ -134,5 +145,13 @@ export class StonedataController {
     async uploadAsset() {
         const data = await this.stoneDataService.insertMediaData()
         return data;
+    }
+
+    @Get('getStoneData')
+    async getStoneData() {
+        const stoneData = await this.mediaRepo.find({
+            relations: ['stonedata']
+        });
+        return stoneData;
     }
 }
