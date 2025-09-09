@@ -1,5 +1,13 @@
-
-import { Body, Controller, Get, Post, Req, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Post,
+    Req,
+    UploadedFile,
+    UseInterceptors,
+    Query,
+} from '@nestjs/common';
 import { StonedataService } from './stonedata.service';
 import { getDiamondCodes } from 'src/utils/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -9,6 +17,7 @@ import { config } from 'dotenv';
 import { get } from 'http';
 import { getConstant } from 'src/utils/constant';
 import { handleVideo } from 'src/utils/mediaProcessor';
+import { ConfigService } from '@nestjs/config';
 config();
 export class StoneSearchDto {
     tag_no?: string;
@@ -29,22 +38,16 @@ export class StoneSearchDto {
     pageSize?: number;
 }
 
-
 @Controller('stonedata')
 export class StonedataController {
-    constructor(private readonly stoneDataService: StonedataService) { }
+    constructor(
+        private readonly stoneDataService: StonedataService,
+        private readonly configService: ConfigService,
+    ) { }
 
     @Get('dfe')
     async getData() {
         return await this.stoneDataService.formatStoneData();
-    }
-
-    @Post('automate-media')
-    async automateMedia() {
-        // return await this.stoneDataService.automateMediaProcessingAndUpload();
-        const url = 'https://nivoda-inhousemedia.s3.amazonaws.com/inhouse-360-6117790152';
-        const cert = 'LG234567524';
-        return await handleVideo(cert, url);
     }
 
     @Get('dfe/fetch-save')
@@ -62,21 +65,40 @@ export class StonedataController {
     @Get('stock-list')
     async getStockList(
         @Query('page') page: string,
-        @Query('pageSize') pageSize: string
+        @Query('pageSize') pageSize: string,
     ) {
         const pageNum = parseInt(page, 10) || 1;
         const pageSizeNum = parseInt(pageSize, 10) || 20;
-        return await this.stoneDataService.getPaginatedIgiList(pageNum, pageSizeNum);
+        return await this.stoneDataService.getPaginatedIgiList(
+            pageNum,
+            pageSizeNum,
+        );
     }
-
+    
     @Get('stone-details')
     async getStoneDetails(@Query('certificate_no') certificateNo: string) {
         if (!certificateNo) {
             return { error: 'certificate_no query param is required' };
         }
-        return await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+        let stoneDetails;
+        try {
+            stoneDetails = await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+            return stoneDetails;
+        } catch (err) {
+            // Log error and return a user-friendly message
+            console.error('Error fetching stone details:', err);
+            return { error: 'Failed to fetch stone details.' };
+        }
     }
-    
+
+    @Post('automate-media')
+    async automateMedia() {
+        // return await this.stoneDataService.automateMediaProcessingAndUpload();
+        const url = 'https://nivoda-inhousemedia.s3.amazonaws.com/inhouse-360-6117790152';
+        const cert = 'LG234567524';
+        return await handleVideo(cert, url);
+    }
+
     @Post('upload-media')
     @UseInterceptors(FileInterceptor('media'))
     async uploadMedia(@Body() body: any, @UploadedFile() media: any) {
@@ -93,6 +115,8 @@ export class StonedataController {
             message: 'Media uploaded successfully',
         };
     }
+
+
 
     @Get('search')
     async searchStonedata(@Query() query: StoneSearchDto) {
