@@ -20,10 +20,13 @@ cmd:>npm run migration:create src/database/migrations/CreateStockTable
 cmd:>npm run migration:create src/database/migrations/CreateStoneDataTable
 cmd:>npm run migration:create src/database/migrations/CreateMediaTable
 
-6. Run Migration
+6. Build app 
+cmd:>npm run build 
+
+7. Run Migration
 cmd:>npm run migration:run
 
-7. Revert Migration (if needed)
+8. Revert Migration (if needed)
 cmd:>npm run migration:revert
 
 

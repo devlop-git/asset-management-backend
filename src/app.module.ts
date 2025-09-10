@@ -3,7 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { StonedataModule } from './stonedata/stonedata.module';
-import { DatabaseModule } from './stonedata/database.module';
+import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { RoleModule } from './role/role.module';
 
 
 @Module({
@@ -12,7 +15,7 @@ import { DatabaseModule } from './stonedata/database.module';
       isGlobal: true, // env vars available everywhere
     }),
     DatabaseModule,   // 👈 register all custom datasources
-    StonedataModule,  // 👈 feature module that uses them
+    StonedataModule, RoleModule,UsersModule,AuthModule  // 👈 feature module that uses them
   ],
   controllers: [AppController],
   providers: [AppService],
