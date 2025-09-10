@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { StonedataService } from './stonedata.service';
 import { StonedataController } from './stonedata.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DatabaseModule } from './database.module';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports:[DatabaseModule],
