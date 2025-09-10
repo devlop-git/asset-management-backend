@@ -7,17 +7,27 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RoleModule } from './role/role.module';
-
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // env vars available everywhere
     }),
-    DatabaseModule,   // 👈 register all custom datasources
-    StonedataModule, RoleModule,UsersModule,AuthModule  // 👈 feature module that uses them
+    DatabaseModule, // 👈 register all custom datasources
+    StonedataModule,
+    RoleModule,
+    UsersModule,
+    AuthModule, // 👈 feature module that uses them
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+  ],
 })
 export class AppModule {}
