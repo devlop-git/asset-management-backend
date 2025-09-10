@@ -141,12 +141,6 @@ export class StonedataController {
         return getConstant;
     }
 
-    @Get('upload-assets')
-    async uploadAsset() {
-        const data = await this.stoneDataService.insertMediaData()
-        return data;
-    }
-
     @Get('getStoneData')
     async getStoneData() {
         const stoneData = await this.mediaRepo.find({

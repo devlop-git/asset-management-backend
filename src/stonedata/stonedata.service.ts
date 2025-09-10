@@ -186,40 +186,6 @@ export class StonedataService {
     })
   }
 
-  async insertMediaData() {
-    const stoneRepo = this.pgDataSource.getRepository(Stonedata);
-    const mediaRepo = this.pgDataSource.getRepository(Media);
-
-    // Fetch stones from DB
-    const stoneData = await stoneRepo.find();
-
-    // Get vendor data
-    const diamondIds = stoneData.map(item => item.certificate_no);
-    const dfrData = await this.getDFEVendorStoneData(diamondIds);
-    const dfrMap = new Map(dfrData.map((item: any) => [item.cert, item])); // cert → dfr record
-
-    // Build insert objects
-    const medias = stoneData.map(stone => {
-      const dfr: any = dfrMap.get(stone.certificate_no);
-
-      const media = new Media();
-      media.stonedata = { id: stone.id } as any;  // ✅ link via object
-      media.image_url = dfr?.imageURL || null;
-      media.is_image_original = dfr ? true : false;
-      media.video_url = dfr?.videoURL || null;
-      media.is_video_original = dfr ? true : false;
-      media.cert_url = dfr?.certificateURL || null;
-      media.is_certified_stone = dfr ? true : false;
-      media.is_manual_upload = false;
-      return media;
-    });
-
-    await mediaRepo.save(medias);
-
-    return medias;
-  }
-
-
 
   async getPaginatedIgiList(page: number = 1, pageSize: number = 20) {
     const offset = (page - 1) * pageSize;
@@ -457,12 +423,9 @@ export class StonedataService {
         video_original: video_url,
         pdf_url: certificateURL
       }
-      // await this.mediaRepo.update(stone.id, mediaEntity);
+      await this.mediaRepo.update(stone.id, mediaEntity);
       
       return mediaEntity;
-      // Implement your media processing and upload logic here
-      // Example:
-      // await this.processMedia(stone, vendorData);
     }));
 
     return processedMedia;

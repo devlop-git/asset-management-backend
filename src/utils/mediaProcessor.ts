@@ -35,6 +35,7 @@ export const  handleImage =async(cert, image_url)=> {
           if (fs.existsSync(localImagePath)) {
             const imageBuffer = fs.readFileSync(localImagePath);
             gcpImageUrl = await fileUploadToGCP('images', `${cert}_image.jpg`, { buffer: imageBuffer });
+            fs.unlinkSync(localImagePath);
             return {gcpImageUrl,image_url};
           } else {
             console.error(`Downloaded image not found: ${localImagePath}`);
