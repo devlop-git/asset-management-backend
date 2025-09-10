@@ -444,16 +444,20 @@ export class StonedataService {
       const certNo = stone.stonedata.certificate_no;
       const vendorData = dfrMap.get(certNo);
     
-      const {imageURL,videoURL} = vendorData
+      const {imageURL,videoURL,certificateURL} = vendorData
 
-      const videoUrl = await handleVideo(certNo, videoURL)
-      const imageUrl = await handleImage(certNo, imageURL)
+      const {gcpVideoUrl,video_url} = await handleVideo(certNo, videoURL)
+      const {gcpImageUrl,image_url} = await handleImage(certNo, imageURL)
 
       const mediaEntity = {
-        image_url: imageUrl,
-        video_url: videoUrl
+        id: stone.id,
+        image_url: gcpImageUrl,
+        image_original: image_url,
+        video_url: gcpVideoUrl,
+        video_original: video_url,
+        pdf_url: certificateURL
       }
-      await this.mediaRepo.update(stone.id, mediaEntity);
+      // await this.mediaRepo.update(stone.id, mediaEntity);
       
       return mediaEntity;
       // Implement your media processing and upload logic here

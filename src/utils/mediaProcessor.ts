@@ -35,7 +35,7 @@ export const  handleImage =async(cert, image_url)=> {
           if (fs.existsSync(localImagePath)) {
             const imageBuffer = fs.readFileSync(localImagePath);
             gcpImageUrl = await fileUploadToGCP('images', `${cert}_image.jpg`, { buffer: imageBuffer });
-            return gcpImageUrl;
+            return {gcpImageUrl,image_url};
           } else {
             console.error(`Downloaded image not found: ${localImagePath}`);
             return null;
@@ -47,11 +47,11 @@ export const  handleImage =async(cert, image_url)=> {
       }
   }
 
-  export const  handleVideo=async(cert, videoURL)=> {
-    console.log("videoURL....", videoURL);
-    if (!videoURL) return null;
+  export const  handleVideo=async(cert, video_url)=> {
+    console.log("videoURL....", video_url);
+    if (!video_url) return null;
 
-    const videoType = detectVideoType(videoURL);
+    const videoType = detectVideoType(video_url);
     const localVideoPath = path.join(__dirname, `../../tmp/${cert}_video.mp4`);
     let processedVideoPath = localVideoPath;
 
@@ -68,13 +68,13 @@ export const  handleImage =async(cert, image_url)=> {
       // Process only if loupe or vv360 type
       if (videoType === "loupe") {
         console.log("Processing video...", processedVideoPath);
-        console.log("videoURL....", videoURL);
-        await processVideo(videoURL, processedVideoPath, 30); // process with URL, output path, fps
+        console.log("videoURL....", video_url);
+        await processVideo(video_url, processedVideoPath, 30); // process with URL, output path, fps
         console.log("Processed video saved at:", processedVideoPath);
       } else {
         console.log("Processing video...", processedVideoPath);
-        console.log("videoURL....", videoURL);
-        await captureVV360Video(videoURL, {
+        console.log("videoURL....", video_url);
+        await captureVV360Video(video_url, {
           duration: 20,
           fps: 25,
           outputFile: processedVideoPath,
@@ -92,7 +92,8 @@ export const  handleImage =async(cert, image_url)=> {
           { buffer: videoBuffer }
         );
         console.log("GCP video URL:", gcpVideoUrl);
-        return gcpVideoUrl;
+        fs.unlinkSync(processedVideoPath);
+        return {  gcpVideoUrl, video_url };
       } else {
         console.error(`Processed video not found: ${processedVideoPath}`);
         return null;
