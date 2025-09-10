@@ -8,6 +8,8 @@ import {
     UseInterceptors,
     Query,
     Inject,
+    HttpStatus,
+    HttpException,
 } from '@nestjs/common';
 import { StonedataService } from './stonedata.service';
 import { getDiamondCodes } from 'src/utils/common';
@@ -22,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 import { Stonedata } from './entities/stonedata.entity';
 import { Media } from './entities/media.entity';
+import { ResponseInterceptor } from 'src/common/interceptors/response.interceptor';
 config();
 export class StoneSearchDto {
     tag_no?: string;
@@ -86,18 +89,16 @@ export class StonedataController {
     }
 
     @Get('stone-details')
+    // @UseInterceptors(ResponseInterceptor)
     async getStoneDetails(@Query('certificate_no') certificateNo: string) {
-        if (!certificateNo) {
-            return { error: 'certificate_no query param is required' };
-        }
-        let stoneDetails;
         try {
-            stoneDetails = await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+            const stoneDetails = await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+            if (!stoneDetails) {
+                throw new HttpException('Stone Not Found', HttpStatus.NOT_FOUND);
+            }
             return stoneDetails;
         } catch (err) {
-            // Log error and return a user-friendly message
-            console.error('Error fetching stone details:', err);
-            return { error: 'Failed to fetch stone details.' };
+            throw new HttpException('Stone Not Found', HttpStatus.NOT_FOUND);
         }
     }
 

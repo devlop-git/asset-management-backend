@@ -13,9 +13,10 @@ import {
       return next.handle().pipe(
         map((data) => {
           return {
-            data: data || null,
-            message: 'Successfully',
+            statusCode: context.switchToHttp().getResponse().statusCode,
             success: true,
+            data: data || null,
+            
           };
         }),
       );
