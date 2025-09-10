@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey } from "typeorm";
+import { MigrationInterface, QueryRunner, Table, TableUnique, TableForeignKey } from "typeorm";
 
 export class CreateMediaTable1756889520500 implements MigrationInterface {
 
@@ -9,7 +9,7 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                 columns: [
                     {
                         name: "id",
-                        type: "int",
+                        type: "serial",
                         isPrimary: true,
                         isGenerated: true,
                         generationStrategy: "increment",
@@ -18,7 +18,6 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                         name: "stone_id",
                         type: "int",
                         isNullable: false,
-                        isUnique: true, // OneToOne relation
                     },
                     {
                         name: "image_url",
@@ -26,9 +25,9 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                         isNullable: true,
                     },
                     {
-                        name: "is_image_original",
-                        type: "boolean",
-                        isNullable: false,
+                        name: "image_original",
+                        type: "text",
+                        isNullable: true,
                     },
                     {
                         name: "video_url",
@@ -36,9 +35,9 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                         isNullable: true,
                     },
                     {
-                        name: "is_video_original",
-                        type: "boolean",
-                        isNullable: false,
+                        name: "video_original",
+                        type: "text",
+                        isNullable: true,
                     },
                     {
                         name: "cert_url",
@@ -79,20 +78,24 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
                         isNullable: true,
                     },
                 ],
-                foreignKeys: [
-                    {
-                        columnNames: ["stone_id"],
-                        referencedTableName: "stonedata",
-                        referencedColumnNames: ["id"]
-                    },
-                ],
                 uniques: [
                     {
+                        name: "UQ_0b3064da12b7eb0ab35769d9748",
                         columnNames: ["stone_id"]
                     }
-                ]
+                ],
             }),
             true
+        );
+
+        await queryRunner.createForeignKey(
+            "media",
+            new TableForeignKey({
+                name: "FK_0b3064da12b7eb0ab35769d9748",
+                columnNames: ["stone_id"],
+                referencedTableName: "stonedata",
+                referencedColumnNames: ["id"],
+            })
         );
     }
 
@@ -101,7 +104,7 @@ export class CreateMediaTable1756889520500 implements MigrationInterface {
         const table = await queryRunner.getTable("media");
         if (table) {
             const foreignKey = table.foreignKeys.find(
-                fk => fk.columnNames.indexOf("stone_id") !== -1
+                fk => fk.name === "FK_0b3064da12b7eb0ab35769d9748"
             );
             if (foreignKey) {
                 await queryRunner.dropForeignKey("media", foreignKey);

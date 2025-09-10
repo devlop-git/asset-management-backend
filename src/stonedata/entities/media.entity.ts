@@ -14,14 +14,14 @@ export class Media {
   @Column({ type: 'text', nullable: true })
   image_url: string | null;
 
-  @Column({ type: 'boolean', nullable: false })
-  is_image_original: boolean;
+  @Column({ type: 'text', nullable: true })
+  image_original: string | null;
 
   @Column({ type: 'text', nullable: true })
   video_url: string | null;
 
-  @Column({ type: 'boolean', nullable: false })
-  is_video_original: boolean;
+  @Column({ type: 'text', nullable: true })
+  video_original: string | null;
 
   @Column({ type: 'text', nullable: true })
   cert_url: string | null;
