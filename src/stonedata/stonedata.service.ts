@@ -1,23 +1,35 @@
 import { Stonedata } from './entities/stonedata.entity';
-import { getIgiReport } from '../utils/igi';
 import { Inject, Injectable } from '@nestjs/common';
 import { getDiamondCodes } from 'src/utils/common';
+import { downloadMedia, detectVideoType } from '../utils/mediaProcessor';
+import { fileUploadToGCP } from '../utils/gcpFileUpload';
+import * as fs from 'fs';
+import * as path from 'path';
 import { dfeStoneQuery, getStoneVendorQuery, labStoneQuery, naturalStoneQuery } from 'src/utils/dbQuery';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Stock } from './entities/stock.entity';
 import { getStockStonedataJoinQuery } from '../utils/dbQuery';
 import { StoneSearchDto } from './stonedata.controller';
 import { Media } from './entities/media.entity';
+import { processVideo } from 'src/scripts/loupevideo';
+import { captureVV360Video } from 'src/scripts/v360pipe';
+import { getIgiInfo, mapReportToStoneAndMedia } from 'src/scripts/scrapepdf';
+
 
 
 @Injectable()
 export class StonedataService {
+  private stoneRepo: Repository<Stonedata>;
+  private mediaRepo: Repository<Media>;
 
   constructor(
     @Inject('MsSqlDataSource') private readonly dataSource: DataSource,
     @Inject('DFRDataSource') private readonly dfrDataSource: DataSource,
     @Inject('PostgresDataSource') private readonly pgDataSource: DataSource,
-  ) { }
+  ) {
+    this.stoneRepo = this.pgDataSource.getRepository(Stonedata);
+    this.mediaRepo = this.pgDataSource.getRepository(Media);
+  }
   async getDFEStockData() {
     try {
       const result = await this.dataSource.query(dfeStoneQuery());
@@ -84,7 +96,7 @@ export class StonedataService {
         },
       ]),
     );
-  
+
     return stoneData.map((stone: any) => {
       const [labName, code] = stone.StockID.split(" ");
       const isLab = stone.StoneType.toLowerCase().includes("lab");
@@ -136,48 +148,78 @@ export class StonedataService {
     return stocks;
   }
 
-
   async createStonedataFromStock() {
     const stockRepo = this.pgDataSource.getRepository(Stock);
-    const stonedataRepo = this.pgDataSource.getRepository(Stonedata);
     const allStocks = await stockRepo.find();
 
-    for (const stock of allStocks) {
+    allStocks.forEach(async (stock: any) => {
       const parts = (stock.stock || '').split(' ');
+      const cert =parts[1];
+      const lab = parts[0];
       console.log("stock:", stock);
       console.log(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
-      if (parts[0].toUpperCase() === 'IGI' && parts[1]) {
+      if (lab === 'IGI' && cert) {
         try {
-          const igiData = await getIgiReport(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
-          // Map igiData to stonedata entity fields
-          const stonedata = stonedataRepo.create({
-            certificate_no: String(igiData.certificate_no ?? ''),
-            lab: String(igiData.lab ?? ''),
-            shape: String(igiData.shape ?? ''),
-            measurement: String(igiData.measurement ?? ''),
-            color: String(igiData.color ?? ''),
-            clarity: String(igiData.clarity ?? ''),
-            cut: String(igiData.cut ?? ''),
-            fluorescence: String(igiData.fluorescence ?? ''),
-            polish: String(igiData.polish ?? ''),
-            symmetry: String(igiData.symmetry ?? ''),
-            girdle: String(igiData.girdle ?? ''),
-            depth: typeof igiData.depth === 'number' ? igiData.depth : Number(igiData.depth) || 0,
-            table: String(igiData.table ?? ''),
-            is_active: true,
-            tag_no: String(stock.tag_no ?? ''),
-            stone_type: Array.isArray(stock.stone_type) ? stock.stone_type.join(', ') : String(stock.stone_type ?? ''),
-            carat: typeof igiData.carat === 'number' ? igiData.carat : Number(igiData.carat) || 0,
-            intensity: String(igiData.intensity ?? ''),
-            // add other fields as needed
-          });
-          await stonedataRepo.save(stonedata);
-        } catch (e) {
-          console.error(`Failed for cert ${parts[1]}:`, e);
+          const report = await getIgiInfo(cert)
+          const { stonedata, media }: any = mapReportToStoneAndMedia(report[0], stock);
+
+          // Create and save stonedata
+          const stoneEntity = this.stoneRepo.create(stonedata);
+          const savedStone: any = await this.stoneRepo.save(stoneEntity);
+
+          const mediaEntity = {
+            ...media,
+            stonedata: { id: savedStone?.id },  // use the confirmed ID
+            image_url: media.image_url || '',
+            is_image_original: media.is_image_original ?? false,
+            video_url: media.video_url || '',
+            is_video_original: media.is_video_original ?? false,
+            is_manual_upload: media.is_manual_upload ?? false,
+          }
+
+          await this.mediaRepo.save(mediaEntity);
+
+        } catch (error) {
+          console.log(error);
         }
       }
-    }
+    })
   }
+
+  async insertMediaData() {
+    const stoneRepo = this.pgDataSource.getRepository(Stonedata);
+    const mediaRepo = this.pgDataSource.getRepository(Media);
+
+    // Fetch stones from DB
+    const stoneData = await stoneRepo.find();
+
+    // Get vendor data
+    const diamondIds = stoneData.map(item => item.certificate_no);
+    const dfrData = await this.getDFEVendorStoneData(diamondIds);
+    const dfrMap = new Map(dfrData.map((item: any) => [item.cert, item])); // cert → dfr record
+
+    // Build insert objects
+    const medias = stoneData.map(stone => {
+      const dfr: any = dfrMap.get(stone.certificate_no);
+
+      const media = new Media();
+      media.stonedata = { id: stone.id } as any;  // ✅ link via object
+      media.image_url = dfr?.imageURL || null;
+      media.is_image_original = dfr ? true : false;
+      media.video_url = dfr?.videoURL || null;
+      media.is_video_original = dfr ? true : false;
+      media.cert_url = dfr?.certificateURL || null;
+      media.is_certified_stone = dfr ? true : false;
+      media.is_manual_upload = false;
+      return media;
+    });
+
+    await mediaRepo.save(medias);
+
+    return medias;
+  }
+
+
 
   async getPaginatedIgiList(page: number = 1, pageSize: number = 20) {
     const offset = (page - 1) * pageSize;
@@ -209,7 +251,7 @@ export class StonedataService {
     WHERE s.certificate_no ILIKE $1
     LIMIT 1
     `;
-    const result = await this.pgDataSource.query(query, [ `%${certificateNo}%` ]);
+    const result = await this.pgDataSource.query(query, [`%${certificateNo}%`]);
     return result[0] || null;
   }
 
@@ -361,95 +403,29 @@ export class StonedataService {
       };
     }
   }
-
-
-
-  //insert media
-
-  async upsertMediaForStone({
-    stone_id,
-    type,
-    fileUrl,
-    isOriginal = true,
-    isManualUpload = true,
-    certificate_url=null
-  }: {
-    stone_id: number,
-    type: string | 'videos' | 'images' | 'pdf',
-    fileUrl: string,
-    isOriginal?: boolean,
-    isManualUpload?: boolean,
-    certificate_url?:null | string
-  }) {
-    const mediaRepo = this.pgDataSource.getRepository(Media);
-
-    // Check if a media record already exists for the given stone_id
-    let media = await mediaRepo.findOne({ where: { stonedata: { id: stone_id } } });
-    // Prepare fields to update or set based on type
-    const updateFields: any = {
-      is_manual_upload: isManualUpload,
-      is_active: true,
-      updated_at: new Date(),
-    };
-    if (type === 'videos') {
-      updateFields.video_url = fileUrl;
-      updateFields.is_video_original = isOriginal;
-    } else if (type === 'images') {
-      updateFields.image_url = fileUrl;
-      updateFields.is_image_original = isOriginal;
-    } else if (type === 'pdf') {
-      updateFields.pdf_url = fileUrl;
+  async automateMediaProcessingAndUpload() {
+    
+    // Ensure tmp directory exists
+    const tmpDir = path.join(__dirname, '../../tmp');
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    if(certificate_url){
-      updateFields.cert_url = certificate_url;
-      updateFields.is_certified_stone = true
-    }
-    if (media) {
-      // If media exists for stone_id, update the record
-      Object.assign(media, updateFields);
-      await mediaRepo.save(media);
-      return { updated: true, media };
-    } else {
-   
-      const stonedataRepo = this.pgDataSource.getRepository(Stonedata);
-      const stonedata = await stonedataRepo.findOne({ where: { id: stone_id } });
-      if (!stonedata) {
-        throw new Error(`Stonedata with id ${stone_id} not found`);
-      }
-      // Set default values for all fields
-      const newMedia: any = {
-        stonedata: stonedata,
-        stone_id: stone_id,
-        is_manual_upload: isManualUpload,
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-        image_url: null,
-        is_image_original: false,
-        video_url: null,
-        is_video_original: false,
-        cert_url: null,
-        is_certified_stone: false,
-      };
-      
-      // Set the appropriate field based on type
-      if (type === 'videos') {
-        newMedia.video_url = fileUrl;
-        newMedia.is_video_original = isOriginal;
-      } else if (type === 'images') {
-        newMedia.image_url = fileUrl;
-        newMedia.is_image_original = isOriginal;
-      } else if (type === 'pdf') {
-        newMedia.pdf_url = fileUrl;
-      }
+    // Fetch stones from DB
+    const stoneData = await this.stoneRepo.find();
 
-      if(certificate_url){
-        updateFields.cert_url = certificate_url;
-        updateFields.is_certified_stone = true
-      }
-      const saved = await mediaRepo.save(mediaRepo.create(newMedia));
-      return { created: true, media: saved };
+    // Get vendor data
+    const diamondIds = stoneData.map(item => item.certificate_no);
+    const dfrData = await this.getDFEVendorStoneData(diamondIds);
+ 
+    for (const stone of dfrData) {
+      const { imageURl, videoURL, cert } = stone;
+     
     }
+    return { success: true };
   }
+
+
+
+
 }
