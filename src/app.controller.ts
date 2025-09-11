@@ -8,13 +8,7 @@ export class AppController {
   @Get()
   getHello(): string {
     try {
-      if (true) {
         return this.appService.getHello();
-
-        
-      } else {
-        throw new HttpException('An error occurred during login', HttpStatus.BAD_REQUEST);
-      }
     } catch (error) {
       // You can customize the error handling as needed
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
