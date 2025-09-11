@@ -221,7 +221,7 @@ export class StonedataService {
     return result[0] || null;
   }
 
-  async searchStonedata(filters: StoneSearchDto, page: number, pageSize: number) {
+  async searchStonedata(filters: any, page: number, pageSize: number) {
     const offset = (page - 1) * pageSize;
     const where: string[] = [];
     const params: any[] = [];
@@ -431,6 +431,88 @@ export class StonedataService {
     return processedMedia;
   }
 
+  // dashboard APIs
+  async getDashboardData(query: any) {
+    this.stoneRepo = this.pgDataSource.getRepository(Stonedata);
+    this.mediaRepo = this.pgDataSource.getRepository(Media);
+    
+    // Build filterable WHERE clause using same rules as searchStonedata
+    const where: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
 
+    const toArray = (val) => {
+      if (val == null) return undefined;
+      return Array.isArray(val) ? val : [val];
+    };
+  
+    const certTypeArr = toArray(query.certificate_type);
+    if (certTypeArr && certTypeArr.length) {
+      where.push(`s.lab = ANY($${paramIndex})`);
+      params.push(certTypeArr);
+      paramIndex++;
+    }
+   
+    const stoneTypeArr = toArray(query.stone_type);
+    if (stoneTypeArr && stoneTypeArr.length) {
+      where.push(`s.stone_type = ANY($${paramIndex})`);
+      params.push(stoneTypeArr);
+      paramIndex++;
+    }
+    const shapeArr = toArray(query.shape);
+    if (shapeArr && shapeArr.length) {
+      where.push(`sd.shape = ANY($${paramIndex})`);
+      params.push(shapeArr);
+      paramIndex++;
+    }
+    if (query.carat_from != null && query.carat_to != null) {
+      where.push(`s.avg_weight BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+      params.push(query.carat_from, query.carat_to);
+      paramIndex += 2;
+    }
+    const colorArr = toArray(query.color);
+    if (colorArr && colorArr.length) {
+      where.push(`sd.color = ANY($${paramIndex})`);
+      params.push(colorArr);
+      paramIndex++;
+    }
+    const clarityArr = toArray(query.clarity);
+    if (clarityArr && clarityArr.length) {
+      where.push(`sd.clarity = ANY($${paramIndex})`);
+      params.push(clarityArr);
+      paramIndex++;
+    }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+    // Counts based on filters using conditional aggregation
+    const countsQuery = `
+      SELECT
+        COUNT(*) FILTER (WHERE m.image_url IS NOT NULL AND m.image_url <> '') AS image_count,
+        COUNT(*) FILTER (WHERE m.video_url IS NOT NULL AND m.video_url <> '') AS video_count,
+        COUNT(*) FILTER (WHERE (m.cert_url IS NOT NULL AND m.cert_url <> '') OR (m.pdf_url IS NOT NULL AND m.pdf_url <> '')) AS pdf_count
+      FROM stock s
+      LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no
+      LEFT JOIN media m ON sd.id = m.stone_id
+      ${whereClause}
+    `;
+
+    const stoneCountQuery = `
+      SELECT COUNT(*)
+      FROM stock s
+      LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no
+      ${whereClause}
+    `;
+
+    const [countsRes, stoneCountRes] = await Promise.all([
+      this.pgDataSource.query(countsQuery, params),
+      this.pgDataSource.query(stoneCountQuery, params)
+    ]);
+
+    return {
+      stoneCount: parseInt(stoneCountRes?.[0]?.count ?? '0', 10),
+      imageCount: parseInt(countsRes?.[0]?.image_count ?? '0', 10),
+      videoCount: parseInt(countsRes?.[0]?.video_count ?? '0', 10),
+      pdfCount: parseInt(countsRes?.[0]?.pdf_count ?? '0', 10),
+    };
+  }
 }

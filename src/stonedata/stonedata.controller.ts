@@ -131,7 +131,7 @@ export class StonedataController {
 
 
     @Get('search')
-    async searchStonedata(@Query() query: StoneSearchDto) {
+    async searchStonedata(@Query() query: any) {
         const page = query.page || 1;
         const pageSize = query.pageSize || 20;
         return await this.stoneDataService.searchStonedata(query, page, pageSize);
@@ -148,5 +148,10 @@ export class StonedataController {
             relations: ['stonedata']
         });
         return stoneData;
+    }
+
+    @Get('dashboard')
+    async getDashboardData(@Query() query: any) {
+        return await this.stoneDataService.getDashboardData(query);
     }
 }
