@@ -73,9 +73,13 @@ export class StonedataController {
     }
 
     @Post('create-stonedata')
-    async createStonedataFromStockApi() {
-        await this.stoneDataService.createStonedataFromStock();
-        return { message: 'Stonedata creation from stock completed.' };
+    
+    async createStonedataFromStockApi(
+        @Query('page') page: string,
+        @Query('pageSize') pageSize: string,
+    ) {
+        return this.stoneDataService.createStonedataFromStock(parseInt(page),parseInt(pageSize));
+        // return { message: 'Stonedata creation from stock completed.' };
     }
 
     @Get('stock-list')

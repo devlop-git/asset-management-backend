@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 export const getDiamondCodes = (stoneData: any) => {
     const result = { lab: [], natural: [] };
 
@@ -34,3 +37,15 @@ export const  capitalizeWords= (str: string): string =>{
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
+
+// Helper function to log failed certificate numbers
+export const logFailedCert = async (certNumber: string | number, error: any) => {
+  try {
+    const logFilePath = path.join(__dirname, '../../failed_certificates.log');
+    console.log("logFilePath....", logFilePath);
+    const logMessage = `${new Date().toISOString()} - Cert: ${certNumber} - Error: ${error}\n`;
+      fs.appendFileSync(logFilePath, logMessage);
+  } catch (fileError) {
+    console.error('Failed to write to log file:', fileError);
+  }
+};
