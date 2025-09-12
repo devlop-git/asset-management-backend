@@ -53,6 +53,33 @@ export class Stock {
   @Column({ type: 'varchar', length: 100 })
   dfr_cert: string;
 
+  @Column({ type: 'varchar', length: 100 })
+  dfr_shape: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_color: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_clarity: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_carat: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_cut: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_polish: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_symmetry: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_fluorescence: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  dfr_measurement: string;
+
   @Column({ type: 'boolean' })
   is_certified_stone: boolean;
 

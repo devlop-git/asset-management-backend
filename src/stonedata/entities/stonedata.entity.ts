@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'stonedata' })
 export class Stonedata {
@@ -62,6 +62,6 @@ export class Stonedata {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at: Date;
 
-  @Column({ type: 'boolean',default: true })
+  @Column({ type: 'boolean', default: true })
   is_active: boolean;
 }

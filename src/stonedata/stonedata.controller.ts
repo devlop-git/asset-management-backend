@@ -28,19 +28,19 @@ import { ResponseInterceptor } from 'src/common/interceptors/response.intercepto
 config();
 export class StoneSearchDto {
     tag_no?: string;
-    certificate_type?: string[];
-    certificate_no?: string[];
-    stone_type?: string[];
-    shape?: string[];
+    certificate_type?: string | string[];
+    certificate_no?: string | string[];
+    stone_type?: string | string[];
+    shape?: string | string[];
+    color?: string | string[];
+    clarity?: string | string[];
     carat_from?: number;
     carat_to?: number;
-    color?: string[];
-    clarity?: string[];
-    cut?: string[];
-    polish?: string[];
-    symmetry?: string[];
-    fluorescence?: string[];
-    intensity?: string[];
+    cut?: string | string[];
+    polish?: string | string[];
+    symmetry?: string | string[];
+    fluorescence?: string | string[];
+    intensity?: string | string[];
     page?: number;
     pageSize?: number;
 }
@@ -58,15 +58,18 @@ export class StonedataController {
         this.mediaRepo = this.pgDataSource.getRepository(Media);
     }
 
-    @Get('dfe')
-    async getData() {
-        return await this.stoneDataService.formatStoneData();
-    }
+    // @Get('dfe')
+    // async getData() {
+    //     return await this.stoneDataService.formatStoneData();
+    // }
 
     @Get('dfe/fetch-save')
-    async fetchAndSaveDFEStockData() {
+    async fetchAndSaveDFEStockData(
+        @Query('page') page: string,
+        @Query('pageSize') pageSize: string,
+    ) {
         // This will fetch DFE stock data and save it to Postgres
-        return await this.stoneDataService.fetchAndSaveDFEStockData();
+        return await this.stoneDataService.fetchAndSaveDFEStockData(parseInt(page),parseInt(pageSize));
     }
 
     @Post('create-stonedata')

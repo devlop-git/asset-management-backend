@@ -30,18 +30,18 @@ export class StonedataService {
     this.stoneRepo = this.pgDataSource.getRepository(Stonedata);
     this.mediaRepo = this.pgDataSource.getRepository(Media);
   }
-  async getDFEStockData() {
+  async getDFEStockData(page?:any,limit?:any) {
     try {
-      const result = await this.dataSource.query(dfeStoneQuery());
+      const result = await this.dataSource.query(dfeStoneQuery(page,limit));
       return result;
     } catch (e) {
       console.log(e);
     }
   }
 
-  async fetchAndSaveDFEStockData() {
+  async fetchAndSaveDFEStockData(page,limit) {
     try {
-      const result = await this.getDFEStockData();
+      const result = await this.getDFEStockData(page,limit);
       return await this.saveDiamondDataToPostgres(result);
     } catch (e) {
       console.log(e);
@@ -71,49 +71,49 @@ export class StonedataService {
       console.log(e);
     }
   }
-  async formatStoneData() {
-    const stoneData: any[] = await this.getDFEStockData();
-    if (!stoneData.length) return [];
+  // async formatStoneData() {
+  //   const stoneData: any[] = await this.getDFEStockData();
+  //   if (!stoneData.length) return [];
 
-    const formatedData = getDiamondCodes(stoneData);
+  //   const formatedData = getDiamondCodes(stoneData);
 
-    const labDiamondIds = formatedData.lab.map((item: any) => item.diamondCode);
-    const naturalDiamondIds = formatedData.natural.map((item: any) => item.diamondCode);
+  //   const labDiamondIds = formatedData.lab.map((item: any) => item.diamondCode);
+  //   const naturalDiamondIds = formatedData.natural.map((item: any) => item.diamondCode);
 
-    // flat array from DB
-    // const dfrData = await this.getDFRStoneData(labDiamondIds, naturalDiamondIds);
-    const dfrData = await this.getDFEVendorStoneData([...labDiamondIds, ...naturalDiamondIds]);
+  //   // flat array from DB
+  //   // const dfrData = await this.getDFRStoneData(labDiamondIds, naturalDiamondIds);
+  //   const dfrData = await this.getDFEVendorStoneData([...labDiamondIds, ...naturalDiamondIds]);
 
-    // lookup map by diamond_code
-    const dfrMap = new Map(
-      dfrData.map((row: any) => [
-        row.cert,
-        {
-          image_url: row.imageURL || null,
-          video_url: row.videoURL || null,
-          cert_url: row.certificateURL || null,
-          lab: row.lab || null
-        },
-      ]),
-    );
+  //   // lookup map by diamond_code
+  //   const dfrMap = new Map(
+  //     dfrData.map((row: any) => [
+  //       row.cert,
+  //       {
+  //         image_url: row.imageURL || null,
+  //         video_url: row.videoURL || null,
+  //         cert_url: row.certificateURL || null,
+  //         lab: row.lab || null
+  //       },
+  //     ]),
+  //   );
 
-    return stoneData.map((stone: any) => {
-      const [labName, code] = stone.StockID.split(" ");
-      const isLab = stone.StoneType.toLowerCase().includes("lab");
-      const dfrInfo: any = dfrMap.get(code) || {};
+  //   return stoneData.map((stone: any) => {
+  //     const [labName, code] = stone.StockID.split(" ");
+  //     const isLab = stone.StoneType.toLowerCase().includes("lab");
+  //     const dfrInfo: any = dfrMap.get(code) || {};
 
-      return {
-        ...stone,
-        diamondCode: code,
-        lab: dfrInfo.lab || labName,
-        image_url: dfrInfo.image_url || null,
-        video_url: dfrInfo.video_url || null,   // ✅ fixed key
-        cert_url: dfrInfo.cert_url || null,     // ✅ include cert url if needed
-        stoneType: isLab ? "lab" : "natural",
-      };
-    });
+  //     return {
+  //       ...stone,
+  //       diamondCode: code,
+  //       lab: dfrInfo.lab || labName,
+  //       image_url: dfrInfo.image_url || null,
+  //       video_url: dfrInfo.video_url || null,   // ✅ fixed key
+  //       cert_url: dfrInfo.cert_url || null,     // ✅ include cert url if needed
+  //       stoneType: isLab ? "lab" : "natural",
+  //     };
+  //   });
 
-  }
+  // }
 
   async saveDiamondDataToPostgres(diamondDataArray: any[]) {
     const stockRepo = this.pgDataSource.getRepository(Stock);
@@ -139,6 +139,14 @@ export class StonedataService {
       stock.dfr_supplier = item.DFR_SupplierName || '';
       stock.dfr_vendor = item.DFR_Vendor || '';
       stock.dfr_cert = item.DFR_CertificateNo || '';
+      stock.dfr_shape = item.ShapeNm?.trim() || '';
+      stock.dfr_color = item.DFR_Color?.trim() || '';
+      stock.dfr_clarity = item.DFR_Clarity?.trim() || '';
+      stock.dfr_cut = item.DFR_Cut?.trim() || '';
+      stock.dfr_polish = item.DFR_Polish?.trim() || '';
+      stock.dfr_symmetry = item.DFR_symmetry?.trim() || '';
+      stock.dfr_fluorescence = item.FluorescenceIntensity?.trim() || '';
+      stock.dfr_measurement = item.MM || '';
       stock.is_certified_stone = true;
       stock.is_active = true;
       stock.tag_no = item.TagNo || '';
@@ -336,7 +344,7 @@ export class StonedataService {
         ON s.certificate_no = sd.certificate_no
       ${whereClause}
     `;
-
+    console.log(baseQuery, params);
     // Error handling
     try {
       // Get total count
