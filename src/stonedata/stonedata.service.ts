@@ -338,11 +338,24 @@ export class StonedataService {
         sd.polish AS "Polish",
         sd.symmetry AS "Symmetry",
         sd.fluorescence AS "Fluorescence",
-        sd.intensity AS "Intensity"
+        sd.intensity AS "Intensity",
+        m.image_url,
+        m.video_url,
+        m.cert_url 
       FROM stock s
       LEFT JOIN stonedata sd
         ON s.certificate_no = sd.certificate_no
+      LEFT JOIN media m
+        ON sd.id = m.stone_id
       ${whereClause}
+      ORDER BY
+    -- First, rows where both imageURL and videoURL are not null and not empty
+    (CASE 
+        WHEN m.image_url IS NOT NULL AND m.image_url <> '' 
+         AND m.video_url IS NOT NULL AND m.video_url <> '' 
+        THEN 1 
+        ELSE 0 
+     END) DESC
     `;
     console.log(baseQuery, params);
     // Error handling
