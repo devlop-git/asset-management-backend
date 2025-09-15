@@ -14,6 +14,7 @@ import { Media } from './entities/media.entity';
 import { processVideo } from 'src/scripts/loupevideo';
 import { captureVV360Video } from 'src/scripts/v360pipe';
 import { getIgiInfo, mapReportToStoneAndMedia } from 'src/scripts/scrapepdf';
+import { delay, getRandomTimeout, processAll } from 'src/scripts/diamondScraping';
 
 
 
@@ -30,18 +31,18 @@ export class StonedataService {
     this.stoneRepo = this.pgDataSource.getRepository(Stonedata);
     this.mediaRepo = this.pgDataSource.getRepository(Media);
   }
-  async getDFEStockData(page?:any,limit?:any) {
+  async getDFEStockData(page?: any, limit?: any) {
     try {
-      const result = await this.dataSource.query(dfeStoneQuery(page,limit));
+      const result = await this.dataSource.query(dfeStoneQuery(page, limit));
       return result;
     } catch (e) {
       console.log(e);
     }
   }
 
-  async fetchAndSaveDFEStockData(page,limit) {
+  async fetchAndSaveDFEStockData(page, limit) {
     try {
-      const result = await this.getDFEStockData(page,limit);
+      const result = await this.getDFEStockData(page, limit);
       return await this.saveDiamondDataToPostgres(result);
     } catch (e) {
       console.log(e);
@@ -156,43 +157,56 @@ export class StonedataService {
     return stocks;
   }
 
-  async createStonedataFromStock() {
+  async createStonedataFromStock(page: number = 1, pageSize: number = 20) {
     const stockRepo = this.pgDataSource.getRepository(Stock);
-    const allStocks = await stockRepo.find();
+    const allStocks = await stockRepo.find({
+      skip: (page - 1) * pageSize,
+      take: pageSize
+    });
 
-    allStocks.forEach(async (stock: any) => {
-      const parts = (stock.stock || '').split(' ');
-      const cert = parts[1];
-      const lab = parts[0];
-      console.log("stock:", stock);
-      console.log(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
-      if (lab === 'IGI' && cert) {
-        try {
-          const report = await getIgiInfo(cert)
-          const { stonedata, media }: any = mapReportToStoneAndMedia(report[0], stock);
+    await this.processStocks(allStocks, 10, 10000); // 10s delay between requests
+  }
 
+  async  processStocks  (stocks: any[], pageSize = 10, delayMs = 10000)  {
+  for (let i = 0; i < stocks.length; i++) {
+    const stock = stocks[i];
+    const parts = (stock.stock || '').split(' ');
+    const cert = parts[1];
+    const lab = parts[0];
+   
+    if (lab === 'IGI' && cert) {
+      console.log(`Processing ${i + 1}/${stocks.length}: Cert ${cert}`);
+      // const report = await getIgiInfo(cert); // this includes retry logic
+      const report = await processAll(cert);
+      
+      if (report.length > 0) {
+        const { stonedata, media }: any = mapReportToStoneAndMedia(JSON.parse(report)[0], stock); // mapReportToStoneAndMedia(report[0], stock);
+        
           // Create and save stonedata
           const stoneEntity = this.stoneRepo.create(stonedata);
           const savedStone: any = await this.stoneRepo.save(stoneEntity);
 
           const mediaEntity = {
             ...media,
-            stonedata: { id: savedStone?.id },  // use the confirmed ID
+            stonedata: { id: savedStone?.id },
             image_url: media.image_url || '',
             is_image_original: media.is_image_original ?? false,
             video_url: media.video_url || '',
             is_video_original: media.is_video_original ?? false,
             is_manual_upload: media.is_manual_upload ?? false,
-          }
+          };
 
           await this.mediaRepo.save(mediaEntity);
-
-        } catch (error) {
-          console.log(error);
-        }
+       
+      } else {
+        console.log(`Failed for cert ${cert}`);
       }
-    })
+    }
+
   }
+
+  console.log('All stocks processed.');
+};
 
 
   async getPaginatedIgiList(page: number = 1, pageSize: number = 20) {
@@ -427,14 +441,14 @@ export class StonedataService {
 
     // Loop over filtered stones and process
     const processedMedia = await Promise.all(filteredStones.map(async (stone: any) => {
-    
+
       const certNo = stone.stonedata.certificate_no;
       const vendorData = dfrMap.get(certNo);
-    
-      const {imageURL,videoURL,certificateURL} = vendorData
 
-      const {gcpVideoUrl,video_url} = await handleVideo(certNo, videoURL)
-      const {gcpImageUrl,image_url} = await handleImage(certNo, imageURL)
+      const { imageURL, videoURL, certificateURL } = vendorData
+
+      const { gcpVideoUrl, video_url } = await handleVideo(certNo, videoURL)
+      const { gcpImageUrl, image_url } = await handleImage(certNo, imageURL)
 
       const mediaEntity = {
         id: stone.id,
@@ -445,7 +459,7 @@ export class StonedataService {
         pdf_url: certificateURL
       }
       await this.mediaRepo.update(stone.id, mediaEntity);
-      
+
       return mediaEntity;
     }));
 
