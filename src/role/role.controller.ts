@@ -1,25 +1,38 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, NotFoundException, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  NotFoundException,
+  UseGuards,
+} from '@nestjs/common';
 import { RoleService } from './role.service';
 import { Role } from './entities/role.entity';
 import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('role')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
-  @UseGuards(AuthGuard('jwt'))  
+  @UseGuards(AuthGuard('jwt'))
   @Post()
   async create(@Body() createRoleDto: Partial<Role>): Promise<Role> {
     return this.roleService.create(createRoleDto);
   }
 
-  @UseGuards(AuthGuard('jwt'))  
+  @UseGuards(AuthGuard('jwt'),RolesGuard)
+  @Roles('admin')
   @Get()
   async findAll(): Promise<Role[]> {
     return this.roleService.findAll();
   }
 
-  @UseGuards(AuthGuard('jwt'))  
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Role> {
     const role = await this.roleService.findOne(Number(id));
@@ -29,7 +42,7 @@ export class RoleController {
     return role;
   }
 
-  @UseGuards(AuthGuard('jwt'))  
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -38,7 +51,7 @@ export class RoleController {
     return this.roleService.update(Number(id), updateRoleDto);
   }
 
-  @UseGuards(AuthGuard('jwt'))  
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<{ message: string }> {
     await this.roleService.remove(Number(id));
