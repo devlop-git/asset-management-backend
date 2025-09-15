@@ -27,11 +27,11 @@ const certificateNumbers = [
     // Add more as needed
 ];
 
-function getRandomTimeout() {
+export const  getRandomTimeout=() =>{
     return Math.floor(Math.random() * (20000 - 10000 + 1)) + 10000;
 }
 
-function delay(ms) {
+export const  delay=(ms)=> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -98,8 +98,8 @@ async function fetchDetails(certNumber) {
     }
 }
 
-export const  processAll=async(certNumbers) =>{
-    for (const certNumber of certNumbers) {
+export const  processAll=async(certNumber) =>{
+    // for (const certNumber of certNumbers) {
         let attempt = 0;
         let success = false;
         while (attempt < 3 && !success) {
@@ -121,10 +121,7 @@ export const  processAll=async(certNumbers) =>{
                 }
             }
         }
-        const timeout = getRandomTimeout();
-        console.log(`Waiting ${timeout / 1000} seconds before next request...`);
-        await delay(timeout);
-    }
+    // }
 }
 
 // Start processing

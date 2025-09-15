@@ -14,6 +14,7 @@ import { Media } from './entities/media.entity';
 import { processVideo } from 'src/scripts/loupevideo';
 import { captureVV360Video } from 'src/scripts/v360pipe';
 import { getIgiInfo, mapReportToStoneAndMedia } from 'src/scripts/scrapepdf';
+import { delay, getRandomTimeout, processAll } from 'src/scripts/diamondScraping';
 
 
 
@@ -164,48 +165,6 @@ export class StonedataService {
     });
 
     await this.processStocks(allStocks, 10, 10000); // 10s delay between requests
-
-    // Utility function to create a delay
-    // const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    // for (const stock of allStocks) {
-    //   const parts = (stock.stock || '').split(' ');
-    //   const cert = parts[1];
-    //   const lab = parts[0];
-
-    //   console.log(parts[1], process.env.IGI_SUBSCRIPTION_KEY);
-
-    //   if (lab === 'IGI' && cert) {
-    //     try {
-    //       const report = await getIgiInfo(cert);
-    //       if (!report) {console.log('No report found'); continue};
-
-    //       const { stonedata, media }: any = mapReportToStoneAndMedia(report[0], stock);
-
-    //       // Create and save stonedata
-    //       const stoneEntity = this.stoneRepo.create(stonedata);
-    //       const savedStone: any = await this.stoneRepo.save(stoneEntity);
-
-    //       const mediaEntity = {
-    //         ...media,
-    //         stonedata: { id: savedStone?.id },
-    //         image_url: media.image_url || '',
-    //         is_image_original: media.is_image_original ?? false,
-    //         video_url: media.video_url || '',
-    //         is_video_original: media.is_video_original ?? false,
-    //         is_manual_upload: media.is_manual_upload ?? false,
-    //       };
-
-    //       await this.mediaRepo.save(mediaEntity);
-
-    //     } catch (error) {
-    //       console.log(error);
-    //     }
-
-    //     // Wait for 10 seconds before processing the next stock
-    //     await delay(10000);
-    //   }
-    // }
   }
 
   async  processStocks  (stocks: any[], pageSize = 10, delayMs = 10000)  {
@@ -214,15 +173,15 @@ export class StonedataService {
     const parts = (stock.stock || '').split(' ');
     const cert = parts[1];
     const lab = parts[0];
-
+   
     if (lab === 'IGI' && cert) {
       console.log(`Processing ${i + 1}/${stocks.length}: Cert ${cert}`);
-      const report = await getIgiInfo(cert); // this includes retry logic
-
-      if (report) {
-        console.log(`Success for cert ${cert}`);
-        const { stonedata, media }: any = mapReportToStoneAndMedia(report[0], stock);
-
+      // const report = await getIgiInfo(cert); // this includes retry logic
+      const report = await processAll(cert);
+      
+      if (report.length > 0) {
+        const { stonedata, media }: any = mapReportToStoneAndMedia(JSON.parse(report)[0], stock); // mapReportToStoneAndMedia(report[0], stock);
+        
           // Create and save stonedata
           const stoneEntity = this.stoneRepo.create(stonedata);
           const savedStone: any = await this.stoneRepo.save(stoneEntity);
@@ -238,17 +197,12 @@ export class StonedataService {
           };
 
           await this.mediaRepo.save(mediaEntity);
-        // further processing like saving to DB
+       
       } else {
         console.log(`Failed for cert ${cert}`);
       }
     }
 
-    // Add delay after each iteration except the last one
-    if (i < stocks.length - 1) {
-      console.log(`Waiting ${delayMs / 1000}s before next request...`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
   }
 
   console.log('All stocks processed.');
