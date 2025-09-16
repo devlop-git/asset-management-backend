@@ -74,7 +74,7 @@ export class StonedataController {
             if (!stoneDetails) {
                 throw new HttpException('Stone Not Found', HttpStatus.NOT_FOUND);
             }
-            return stoneDetails;
+            return { data: stoneDetails, message: 'Stone details fetched successfully',};
         } catch (err) {
             throw new HttpException('Stone Not Found', HttpStatus.NOT_FOUND);
         }
@@ -102,22 +102,22 @@ export class StonedataController {
         };
     }
 
-
-
     @Get('search')
     async searchStonedata(@Query() query: any) {
         const page = query.page || 1;
         const pageSize = query.pageSize || 20;
-        return await this.stoneDataService.searchQuery(query, page, pageSize);
+        const result = await this.stoneDataService.searchQuery(query, page, pageSize);
+        return { data: result, message: 'Data Found Successfully' };
     }
 
     @Get('filterData')
     async getFilterData() {
-        return getConstant;
+        return {data:getConstant};
     }
 
     @Get('dashboard')
     async getDashboardData(@Query() query: any) {
-        return await this.stoneDataService.getDashboardData(query);
+        const result = await this.stoneDataService.getDashboardData(query);
+        return { data: result, message: 'Data Found Successfully' };
     }
 }
