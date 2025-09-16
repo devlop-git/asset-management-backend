@@ -1,36 +1,27 @@
-import { Stonedata } from './entities/stonedata.entity';
 import { Inject, Injectable } from '@nestjs/common';
-import { getDiamondCodes } from 'src/utils/common';
-import { downloadMedia, detectVideoType, handleVideo, handleImage } from '../utils/mediaProcessor';
-import { fileUploadToGCP } from '../utils/gcpFileUpload';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { processAll } from 'src/scripts/diamondScraping';
+import { mapReportToStoneAndMedia } from 'src/scripts/scrapepdf';
 import { dfeStoneQuery, getStoneVendorQuery, labStoneQuery, naturalStoneQuery } from 'src/utils/dbQuery';
-import { DataSource, Repository } from 'typeorm';
-import { Stock } from './entities/stock.entity';
-import { getStockStonedataJoinQuery } from '../utils/dbQuery';
-import { StoneSearchDto } from './stonedata.controller';
-import { Media } from './entities/media.entity';
-import { processVideo } from 'src/scripts/loupevideo';
-import { captureVV360Video } from 'src/scripts/v360pipe';
-import { getIgiInfo, mapReportToStoneAndMedia } from 'src/scripts/scrapepdf';
-import { delay, getRandomTimeout, processAll } from 'src/scripts/diamondScraping';
-
-
+import { DataSource, ILike, Repository } from 'typeorm';
+import { handleImage, handleVideo } from '../utils/mediaProcessor';
+import { Media, Stock, Stonedata } from './entities';
 
 @Injectable()
 export class StonedataService {
-  private stoneRepo: Repository<Stonedata>;
-  private mediaRepo: Repository<Media>;
 
   constructor(
     @Inject('MsSqlDataSource') private readonly dataSource: DataSource,
     @Inject('DFRDataSource') private readonly dfrDataSource: DataSource,
-    @Inject('PostgresDataSource') private readonly pgDataSource: DataSource,
-  ) {
-    this.stoneRepo = this.pgDataSource.getRepository(Stonedata);
-    this.mediaRepo = this.pgDataSource.getRepository(Media);
-  }
+    @InjectRepository(Stonedata)
+    private readonly stoneRepository: Repository<Stonedata>,
+    @InjectRepository(Media)
+    private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(Stock)
+    private readonly stockRepository: Repository<Stock>,
+  ) { }
   async getDFEStockData(page?: any, limit?: any) {
     try {
       const result = await this.dataSource.query(dfeStoneQuery(page, limit));
@@ -72,52 +63,9 @@ export class StonedataService {
       console.log(e);
     }
   }
-  // async formatStoneData() {
-  //   const stoneData: any[] = await this.getDFEStockData();
-  //   if (!stoneData.length) return [];
-
-  //   const formatedData = getDiamondCodes(stoneData);
-
-  //   const labDiamondIds = formatedData.lab.map((item: any) => item.diamondCode);
-  //   const naturalDiamondIds = formatedData.natural.map((item: any) => item.diamondCode);
-
-  //   // flat array from DB
-  //   // const dfrData = await this.getDFRStoneData(labDiamondIds, naturalDiamondIds);
-  //   const dfrData = await this.getDFEVendorStoneData([...labDiamondIds, ...naturalDiamondIds]);
-
-  //   // lookup map by diamond_code
-  //   const dfrMap = new Map(
-  //     dfrData.map((row: any) => [
-  //       row.cert,
-  //       {
-  //         image_url: row.imageURL || null,
-  //         video_url: row.videoURL || null,
-  //         cert_url: row.certificateURL || null,
-  //         lab: row.lab || null
-  //       },
-  //     ]),
-  //   );
-
-  //   return stoneData.map((stone: any) => {
-  //     const [labName, code] = stone.StockID.split(" ");
-  //     const isLab = stone.StoneType.toLowerCase().includes("lab");
-  //     const dfrInfo: any = dfrMap.get(code) || {};
-
-  //     return {
-  //       ...stone,
-  //       diamondCode: code,
-  //       lab: dfrInfo.lab || labName,
-  //       image_url: dfrInfo.image_url || null,
-  //       video_url: dfrInfo.video_url || null,   // ✅ fixed key
-  //       cert_url: dfrInfo.cert_url || null,     // ✅ include cert url if needed
-  //       stoneType: isLab ? "lab" : "natural",
-  //     };
-  //   });
-
-  // }
 
   async saveDiamondDataToPostgres(diamondDataArray: any[]) {
-    const stockRepo = this.pgDataSource.getRepository(Stock);
+
     const stocks: Stock[] = diamondDataArray.map(item => {
       const stock = new Stock();
       stock.stock = item.StockID || 0;
@@ -153,13 +101,13 @@ export class StonedataService {
       stock.tag_no = item.TagNo || '';
       return stock;
     });
-    await stockRepo.save(stocks);
+    await this.stockRepository.save(stocks);
     return stocks;
   }
 
   async createStonedataFromStock(page: number = 1, pageSize: number = 20) {
-    const stockRepo = this.pgDataSource.getRepository(Stock);
-    const allStocks = await stockRepo.find({
+
+    const allStocks = await this.stockRepository.find({
       skip: (page - 1) * pageSize,
       take: pageSize
     });
@@ -167,24 +115,24 @@ export class StonedataService {
     await this.processStocks(allStocks, 10, 10000); // 10s delay between requests
   }
 
-  async  processStocks  (stocks: any[], pageSize = 10, delayMs = 10000)  {
-  for (let i = 0; i < stocks.length; i++) {
-    const stock = stocks[i];
-    const parts = (stock.stock || '').split(' ');
-    const cert = parts[1];
-    const lab = parts[0];
-   
-    if (lab === 'IGI' && cert) {
-      console.log(`Processing ${i + 1}/${stocks.length}: Cert ${cert}`);
-      // const report = await getIgiInfo(cert); // this includes retry logic
-      const report = await processAll(cert);
-      
-      if (report.length > 0) {
-        const { stonedata, media }: any = mapReportToStoneAndMedia(JSON.parse(report)[0], stock); // mapReportToStoneAndMedia(report[0], stock);
-        
+  async processStocks(stocks: any[], pageSize = 10, delayMs = 10000) {
+    for (let i = 0; i < stocks.length; i++) {
+      const stock = stocks[i];
+      const parts = (stock.stock || '').split(' ');
+      const cert = parts[1];
+      const lab = parts[0];
+
+      if (lab === 'IGI' && cert) {
+        console.log(`Processing ${i + 1}/${stocks.length}: Cert ${cert}`);
+        // const report = await getIgiInfo(cert); // this includes retry logic
+        const report = await processAll(cert);
+
+        if (report.length > 0) {
+          const { stonedata, media }: any = mapReportToStoneAndMedia(JSON.parse(report)[0], stock); // mapReportToStoneAndMedia(report[0], stock);
+
           // Create and save stonedata
-          const stoneEntity = this.stoneRepo.create(stonedata);
-          const savedStone: any = await this.stoneRepo.save(stoneEntity);
+          const stoneEntity = this.stoneRepository.create(stonedata);
+          const savedStone: any = await this.stoneRepository.save(stoneEntity);
 
           const mediaEntity = {
             ...media,
@@ -196,203 +144,171 @@ export class StonedataService {
             is_manual_upload: media.is_manual_upload ?? false,
           };
 
-          await this.mediaRepo.save(mediaEntity);
-       
-      } else {
-        console.log(`Failed for cert ${cert}`);
+          await this.mediaRepository.save(mediaEntity);
+
+        } else {
+          console.log(`Failed for cert ${cert}`);
+        }
       }
+
     }
 
+    console.log('All stocks processed.');
+  };
+
+
+  async getStockWithRelations(certificateNo: string) {
+    try {
+      console.log("certicateNo", certificateNo);
+      const stock = await this.stockRepository.findOne({
+        where: { certificate_no: ILike(`%${certificateNo}%`) },
+        relations: ['stonedata', 'stonedata.media'], // include relations if present
+      });
+
+      return stock;
+
+    } catch (error) {
+      console.error('Error fetching stock:', error);
+      return {
+        success: false,
+        error: error.message || error,
+      };
+    }
   }
 
-  console.log('All stocks processed.');
-};
-
-
-  async getPaginatedIgiList(page: number = 1, pageSize: number = 20) {
+  async searchQuery(filters: any, page: number, pageSize: number) {
     const offset = (page - 1) * pageSize;
-    const countQuery = `SELECT COUNT(*) FROM stock s WHERE s.is_active = true AND s.stock LIKE 'IGI %'`;
-    const totalResult = await this.pgDataSource.query(countQuery);
-    const total = parseInt(totalResult[0].count, 10);
+    console.log(filters);
+    const query = this.stockRepository
+      .createQueryBuilder('s')
+      .leftJoinAndSelect('s.stonedata', 'sd')
+      .leftJoinAndSelect('sd.media', 'm');
 
-    const dataQuery = `${getStockStonedataJoinQuery()} LIMIT ${pageSize} OFFSET ${offset}`;
-    const data = await this.pgDataSource.query(dataQuery);
 
-    return {
-      data,
-      page,
-      pageSize,
-      total,
-      totalPages: Math.ceil(total / pageSize),
-    };
-  }
-  async getStonedataByCertificateNo(certificateNo: string) {
-    const query = `
-     SELECT
-      s.id AS stock_id,
-      sd.id AS stone_id,
-      m.id AS media_id,
-      s.*, sd.*, m.*
-    FROM stock s
-    LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no
-    LEFT JOIN media m ON sd.id = m.stone_id
-    WHERE s.certificate_no ILIKE $1
-    LIMIT 1
-    `;
-    const result = await this.pgDataSource.query(query, [`%${certificateNo}%`]);
-    return result[0] || null;
-  }
-
-  async searchStonedata(filters: any, page: number, pageSize: number) {
-    const offset = (page - 1) * pageSize;
-    const where: string[] = [];
-    const params: any[] = [];
-    let paramIndex = 1;
-
-    // Helper to ensure array for multi-value filters
-    const toArray = (val) => {
+    const toArray = (val: any) => {
       if (val == null) return undefined;
       return Array.isArray(val) ? val : [val];
     };
 
-    // Strictly use only DTO fields
+    // Filter: tag_no
     if (filters.tag_no) {
-      where.push(`s.tag_no ILIKE $${paramIndex}`);
-      params.push(`%${filters.tag_no}%`);
-      paramIndex++;
+      query.andWhere('s.tag_no ILIKE :tagNo', { tagNo: `%${filters.tag_no}%` });
     }
+
+    // Filter: certificate_type
     const certTypeArr = toArray(filters.certificate_type);
-    if (certTypeArr && certTypeArr.length) {
-      where.push(`s.lab = ANY($${paramIndex})`);
-      params.push(certTypeArr);
-      paramIndex++;
+    if (certTypeArr?.length) {
+      query.andWhere('s.lab IN (:...certTypes)', { certTypes: certTypeArr });
     }
+
+    // Filter: certificate_no
     const certNoArr = toArray(filters.certificate_no);
-    if (certNoArr && certNoArr.length) {
-      // Use ILIKE for partial/regex search
-      const certNoConditions = certNoArr.map((val, idx) => {
-        params.push(`%${val}%`);
-        return `s.certificate_no ILIKE $${paramIndex + idx}`;
+    if (certNoArr?.length) {
+      const conditions = certNoArr.map((_, idx) => `s.certificate_no ILIKE :certNo${idx}`);
+      certNoArr.forEach((val, idx) => {
+        query.setParameter(`certNo${idx}`, `%${val}%`);
       });
-      where.push(`(${certNoConditions.join(' OR ')})`);
-      paramIndex += certNoArr.length;
+      query.andWhere(`(${conditions.join(' OR ')})`);
     }
+
+    // Filter: stone_type
     const stoneTypeArr = toArray(filters.stone_type);
-    if (stoneTypeArr && stoneTypeArr.length) {
-      where.push(`s.stone_type = ANY($${paramIndex})`);
-      params.push(stoneTypeArr);
-      paramIndex++;
+    if (stoneTypeArr?.length) {
+      query.andWhere('s.stone_type IN (:...stoneTypes)', { stoneTypes: stoneTypeArr });
     }
+
+    // Filter: certificateType (if distinct from certificate_type)
+    const certificateTypeArr = toArray(filters.certificateType);
+    if (certificateTypeArr?.length) {
+      const conditions = certificateTypeArr.map((_, idx) => `s.lab ILIKE :certType${idx}`);
+      certificateTypeArr.forEach((val, idx) => {
+        query.setParameter(`certType${idx}`, `%${val}%`);
+      });
+      query.andWhere(`(${conditions.join(' OR ')})`);
+    }
+
+    // Filter: shape
     const shapeArr = toArray(filters.shape);
-    if (shapeArr && shapeArr.length) {
-      where.push(`sd.shape = ANY($${paramIndex})`);
-      params.push(shapeArr);
-      paramIndex++;
+    if (shapeArr?.length) {
+      query.andWhere('sd.shape IN (:...shapes)', { shapes: shapeArr });
     }
+
+    // Filter: carat range
     if (filters.carat_from != null && filters.carat_to != null) {
-      where.push(`s.avg_weight BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-      params.push(filters.carat_from, filters.carat_to);
-      paramIndex += 2;
+      query.andWhere('s.avg_weight BETWEEN :caratFrom AND :caratTo', {
+        caratFrom: filters.carat_from,
+        caratTo: filters.carat_to,
+      });
     }
+
+    // Filter: color
     const colorArr = toArray(filters.color);
-    if (colorArr && colorArr.length) {
-      where.push(`sd.color = ANY($${paramIndex})`);
-      params.push(colorArr);
-      paramIndex++;
+    if (colorArr?.length) {
+      query.andWhere('sd.color IN (:...colors)', { colors: colorArr });
     }
+
+    // Filter: clarity
     const clarityArr = toArray(filters.clarity);
-    if (clarityArr && clarityArr.length) {
-      where.push(`sd.clarity = ANY($${paramIndex})`);
-      params.push(clarityArr);
-      paramIndex++;
+    if (clarityArr?.length) {
+      query.andWhere('sd.clarity IN (:...clarities)', { clarities: clarityArr });
     }
+
+    // Filter: cut
     const cutArr = toArray(filters.cut);
-    if (cutArr && cutArr.length) {
-      where.push(`sd.cut = ANY($${paramIndex})`);
-      params.push(cutArr);
-      paramIndex++;
+    if (cutArr?.length) {
+      query.andWhere('sd.cut IN (:...cuts)', { cuts: cutArr });
     }
+
+    // Filter: polish
     const polishArr = toArray(filters.polish);
-    if (polishArr && polishArr.length) {
-      where.push(`sd.polish = ANY($${paramIndex})`);
-      params.push(polishArr);
-      paramIndex++;
+    if (polishArr?.length) {
+      query.andWhere('sd.polish IN (:...polishes)', { polishes: polishArr });
     }
+
+    // Filter: symmetry
     const symmetryArr = toArray(filters.symmetry);
-    if (symmetryArr && symmetryArr.length) {
-      where.push(`sd.symmetry = ANY($${paramIndex})`);
-      params.push(symmetryArr);
-      paramIndex++;
+    if (symmetryArr?.length) {
+      query.andWhere('sd.symmetry IN (:...symmetries)', { symmetries: symmetryArr });
     }
+
+    // Filter: fluorescence
     const fluorescenceArr = toArray(filters.fluorescence);
-    if (fluorescenceArr && fluorescenceArr.length) {
-      where.push(`sd.fluorescence = ANY($${paramIndex})`);
-      params.push(fluorescenceArr);
-      paramIndex++;
+    if (fluorescenceArr?.length) {
+      query.andWhere('sd.fluorescence IN (:...fluorescences)', { fluorescences: fluorescenceArr });
     }
+
+    // Filter: intensity
     const intensityArr = toArray(filters.intensity);
-    if (intensityArr && intensityArr.length) {
-      where.push(`sd.intensity = ANY($${paramIndex})`);
-      params.push(intensityArr);
-      paramIndex++;
+    if (intensityArr?.length) {
+      query.andWhere('sd.intensity IN (:...intensities)', { intensities: intensityArr });
     }
 
-    let whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const baseQuery = `
-      SELECT
-        sd.tag_no,
-        s.lab AS "CertificateType",
-        s.certificate_no AS "CertificateNo",
-        s.stone_type AS "StoneType",
-        sd.shape AS "Shape",
-        sd.carat AS "Carat",
-        sd.color AS "Color",
-        sd.clarity AS "Clarity",
-        sd.cut AS "Cut",
-        sd.polish AS "Polish",
-        sd.symmetry AS "Symmetry",
-        sd.fluorescence AS "Fluorescence",
-        sd.intensity AS "Intensity",
-        m.image_url,
-        m.video_url,
-        m.cert_url 
-      FROM stock s
-      LEFT JOIN stonedata sd
-        ON s.certificate_no = sd.certificate_no
-      LEFT JOIN media m
-        ON sd.id = m.stone_id
-      ${whereClause}
-      ORDER BY
-    -- First, rows where both imageURL and videoURL are not null and not empty
-    (CASE 
-        WHEN m.image_url IS NOT NULL AND m.image_url <> '' 
-         AND m.video_url IS NOT NULL AND m.video_url <> '' 
-        THEN 1 
-        ELSE 0 
-     END) DESC
-    `;
-    console.log(baseQuery, params);
-    // Error handling
-    try {
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM stock s LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no ${whereClause}`;
-      const totalResult = await this.pgDataSource.query(countQuery, params);
-      const total = parseInt(totalResult[0].count, 10);
+    // Ordering: prioritize rows with both image and video present
+    query.addSelect(`
+    CASE 
+      WHEN m.image_url IS NOT NULL AND m.image_url <> '' 
+       AND m.video_url IS NOT NULL AND m.video_url <> '' 
+      THEN 1 ELSE 0 
+    END`, 'media_priority');
+    query.orderBy('media_priority', 'DESC');
 
-      // Get paginated data
-      const dataQuery = `${baseQuery} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      const dataParams = [...params, pageSize, offset];
-      const data = await this.pgDataSource.query(dataQuery, dataParams);
+    // Pagination
+    query.skip(offset).take(pageSize);
+    console.log(query.getSql());
+
+    try {
+      const total = await query.getCount();
+      const data = await query.getMany();
 
       return {
-        success: true,
-        data,
         page,
         pageSize,
         total,
         totalPages: Math.ceil(total / pageSize),
+        data
       };
     } catch (error) {
+      console.error("💥 Fatal error:", error.message);
       return {
         success: false,
         error: error.message || error,
@@ -405,6 +321,7 @@ export class StonedataService {
     }
   }
 
+
   async automateMediaProcessingAndUpload() {
     // Ensure tmp directory exists
     const tmpDir = path.join(__dirname, '../../tmp');
@@ -413,7 +330,7 @@ export class StonedataService {
     }
 
     // Fetch stones from DB with relation
-    const stoneData = await this.mediaRepo.find({
+    const stoneData = await this.mediaRepository.find({
       relations: ['stonedata']
     });
 
@@ -458,7 +375,7 @@ export class StonedataService {
         video_original: video_url,
         pdf_url: certificateURL
       }
-      await this.mediaRepo.update(stone.id, mediaEntity);
+      await this.mediaRepository.update(stone.id, mediaEntity);
 
       return mediaEntity;
     }));
@@ -468,86 +385,102 @@ export class StonedataService {
 
   // dashboard APIs
   async getDashboardData(query: any) {
-    this.stoneRepo = this.pgDataSource.getRepository(Stonedata);
-    this.mediaRepo = this.pgDataSource.getRepository(Media);
-    
     // Build filterable WHERE clause using same rules as searchStonedata
-    const where: string[] = [];
-    const params: any[] = [];
-    let paramIndex = 1;
-
     const toArray = (val) => {
       if (val == null) return undefined;
       return Array.isArray(val) ? val : [val];
     };
-  
+
     const certTypeArr = toArray(query.certificate_type);
-    if (certTypeArr && certTypeArr.length) {
-      where.push(`s.lab = ANY($${paramIndex})`);
-      params.push(certTypeArr);
-      paramIndex++;
-    }
-   
     const stoneTypeArr = toArray(query.stone_type);
-    if (stoneTypeArr && stoneTypeArr.length) {
-      where.push(`s.stone_type = ANY($${paramIndex})`);
-      params.push(stoneTypeArr);
-      paramIndex++;
-    }
     const shapeArr = toArray(query.shape);
-    if (shapeArr && shapeArr.length) {
-      where.push(`sd.shape = ANY($${paramIndex})`);
-      params.push(shapeArr);
-      paramIndex++;
-    }
-    if (query.carat_from != null && query.carat_to != null) {
-      where.push(`s.avg_weight BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-      params.push(query.carat_from, query.carat_to);
-      paramIndex += 2;
-    }
     const colorArr = toArray(query.color);
-    if (colorArr && colorArr.length) {
-      where.push(`sd.color = ANY($${paramIndex})`);
-      params.push(colorArr);
-      paramIndex++;
-    }
     const clarityArr = toArray(query.clarity);
-    if (clarityArr && clarityArr.length) {
-      where.push(`sd.clarity = ANY($${paramIndex})`);
-      params.push(clarityArr);
-      paramIndex++;
+
+    const qb = this.stockRepository
+      .createQueryBuilder('s')
+      .leftJoin('s.stonedata', 'sd')
+      .leftJoin('sd.media', 'm');
+
+    // Apply filters
+    if (certTypeArr?.length) {
+      qb.andWhere('s.lab = ANY(:certType)', { certType: certTypeArr });
     }
-    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    // Counts based on filters using conditional aggregation
-    const countsQuery = `
-      SELECT
-        COUNT(*) FILTER (WHERE m.image_url IS NOT NULL AND m.image_url <> '') AS image_count,
-        COUNT(*) FILTER (WHERE m.video_url IS NOT NULL AND m.video_url <> '') AS video_count,
-        COUNT(*) FILTER (WHERE (m.cert_url IS NOT NULL AND m.cert_url <> '') OR (m.pdf_url IS NOT NULL AND m.pdf_url <> '')) AS pdf_count
-      FROM stock s
-      LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no
-      LEFT JOIN media m ON sd.id = m.stone_id
-      ${whereClause}
-    `;
+    if (stoneTypeArr?.length) {
+      qb.andWhere('s.stone_type = ANY(:stoneType)', { stoneType: stoneTypeArr });
+    }
 
-    const stoneCountQuery = `
-      SELECT COUNT(*)
-      FROM stock s
-      LEFT JOIN stonedata sd ON s.certificate_no = sd.certificate_no
-      ${whereClause}
-    `;
+    if (shapeArr?.length) {
+      qb.andWhere('sd.shape = ANY(:shape)', { shape: shapeArr });
+    }
 
-    const [countsRes, stoneCountRes] = await Promise.all([
-      this.pgDataSource.query(countsQuery, params),
-      this.pgDataSource.query(stoneCountQuery, params)
+    if (colorArr?.length) {
+      qb.andWhere('sd.color = ANY(:color)', { color: colorArr });
+    }
+
+    if (clarityArr?.length) {
+      qb.andWhere('sd.clarity = ANY(:clarity)', { clarity: clarityArr });
+    }
+
+    if (query.carat_from != null && query.carat_to != null) {
+      qb.andWhere('s.avg_weight BETWEEN :caratFrom AND :caratTo', {
+        caratFrom: query.carat_from,
+        caratTo: query.carat_to,
+      });
+    }
+
+    // Count of stones
+    const stoneCountQb = this.stockRepository
+      .createQueryBuilder('s')
+      .leftJoin('s.stonedata', 'sd');
+
+    // Apply same filters
+    if (certTypeArr?.length) {
+      stoneCountQb.andWhere('s.lab = ANY(:certType)', { certType: certTypeArr });
+    }
+
+    if (stoneTypeArr?.length) {
+      stoneCountQb.andWhere('s.stone_type = ANY(:stoneType)', { stoneType: stoneTypeArr });
+    }
+
+    if (shapeArr?.length) {
+      stoneCountQb.andWhere('sd.shape = ANY(:shape)', { shape: shapeArr });
+    }
+
+    if (colorArr?.length) {
+      stoneCountQb.andWhere('sd.color = ANY(:color)', { color: colorArr });
+    }
+
+    if (clarityArr?.length) {
+      stoneCountQb.andWhere('sd.clarity = ANY(:clarity)', { clarity: clarityArr });
+    }
+
+    if (query.carat_from != null && query.carat_to != null) {
+      stoneCountQb.andWhere('s.avg_weight BETWEEN :caratFrom AND :caratTo', {
+        caratFrom: query.carat_from,
+        caratTo: query.carat_to,
+      });
+    }
+
+    // Get counts with aggregation
+    const countsQb = qb
+      .select([
+        `COUNT(CASE WHEN m.image_url IS NOT NULL AND m.image_url <> '' THEN 1 END) AS "image_count"`,
+        `COUNT(CASE WHEN m.video_url IS NOT NULL AND m.video_url <> '' THEN 1 END) AS "video_count"`,
+        `COUNT(CASE WHEN (m.cert_url IS NOT NULL AND m.cert_url <> '') OR (m.pdf_url IS NOT NULL AND m.pdf_url <> '') THEN 1 END) AS "pdf_count"`
+      ]);
+
+    const [counts, stoneCount] = await Promise.all([
+      countsQb.getRawOne(),
+      stoneCountQb.getCount()
     ]);
 
     return {
-      stoneCount: parseInt(stoneCountRes?.[0]?.count ?? '0', 10),
-      imageCount: parseInt(countsRes?.[0]?.image_count ?? '0', 10),
-      videoCount: parseInt(countsRes?.[0]?.video_count ?? '0', 10),
-      pdfCount: parseInt(countsRes?.[0]?.pdf_count ?? '0', 10),
+      stoneCount: stoneCount,
+      imageCount: parseInt(counts?.image_count || '0', 10),
+      videoCount: parseInt(counts?.video_count || '0', 10),
+      pdfCount: parseInt(counts?.pdf_count || '0', 10),
     };
   }
 }

@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
+import { Stonedata } from './stonedata.entity';
 
 @Entity()
 export class Stock {
@@ -82,6 +83,10 @@ export class Stock {
 
   @Column({ type: 'boolean' })
   is_certified_stone: boolean;
+
+  @OneToOne(() => Stonedata, stoneData => stoneData.stock)
+  @JoinColumn({ name: 'certificate_no', referencedColumnName: 'certificate_no' })
+  stonedata: Stonedata;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

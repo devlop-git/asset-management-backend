@@ -1,4 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Stock } from './stock.entity';
+import { Media } from './media.entity';
 
 @Entity({ name: 'stonedata' })
 export class Stonedata {
@@ -55,6 +57,13 @@ export class Stonedata {
 
   @Column({ type: 'varchar', length: 100 })
   intensity: string;
+
+  @OneToOne(() => Stock, stock => stock.stonedata)
+  @JoinColumn({ name: 'certificate_no', referencedColumnName: 'certificate_no' })
+  stock: Stock;
+
+  @OneToMany(() => Media, media => media.stonedata)
+  media: Media[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
