@@ -1,0 +1,43 @@
+# Permissions Management API Endpoints
+
+# 1. Create a new permission
+curl --location 'http://localhost:3000/permissions' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+--data-raw '{
+    "url": "/stonedata",
+    "method": "GET",
+    "description": "Access stonedata listing",
+    
+}'
+
+# 2. Get all permissions
+curl --location 'http://localhost:3000/permissions' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# 3. Get a specific permission by ID
+curl --location 'http://localhost:3000/permissions/1' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# 4. Update a permission
+curl --location --request PUT 'http://localhost:3000/permissions/1' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+--data-raw '{
+    "url": "/stonedata",
+    "method": "POST",
+    "description": "Create stonedata item",
+    
+}'
+
+# 5. Delete a permission
+curl --location --request DELETE 'http://localhost:3000/permissions/1' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Notes:
+# - Replace YOUR_JWT_TOKEN with the JWT received from the login endpoint.
+# - Example fields:
+#   url: API path to guard (e.g., "/permissions", "/role/1")
+#   method: HTTP method to allow (e.g., "GET", "POST", "PUT", "DELETE")
+#   description: Optional text describing the permission
+#   is_active: true/false
