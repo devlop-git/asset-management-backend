@@ -294,18 +294,38 @@ export class StonedataService {
 
     // Pagination
     query.skip(offset).take(pageSize);
-    console.log(query.getSql());
+
 
     try {
       const total = await query.getCount();
-      const data = await query.getMany();
+      const response = await query.getMany();
+      const data = response.map((row: any) => (
+        {
+          tag_no: row.stonedata?.tag_no,
+          certificateType: row.lab, // 's' is 'stock', so 's.lab' becomes 'row.lab'
+          certificateNo: row.certificate_no,
+          stoneType: row.stone_type,
+          shape: row.stonedata?.shape,
+          carat: row.stonedata?.carat,
+          color: row.stonedata?.color,
+          clarity: row.stonedata?.clarity,
+          cut: row.stonedata?.cut,
+          polish: row.stonedata?.polish,
+          symmetry: row.stonedata?.symmetry,
+          fluorescence: row.stonedata?.fluorescence,
+          intensity: row.stonedata?.intensity,
+          image_url: row.stonedata?.media[0]?.image_url,
+          video_url: row.stonedata?.media[0]?.video_url,
+          cert_url: row.stonedata?.media[0]?.cert_url
+        }
+      ))
 
       return {
         page,
         pageSize,
         total,
         totalPages: Math.ceil(total / pageSize),
-        data
+        data: data
       };
     } catch (error) {
       console.error("💥 Fatal error:", error.message);
