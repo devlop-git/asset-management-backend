@@ -13,7 +13,7 @@ export class RoleService {
   async onModuleInit() {
     const count = await this.roleRepository.count();
     if (count === 0) {
-      await this.roleRepository.save([{ name: 'user' }, { name: 'admin' }]);
+      await this.roleRepository.save([{ name: 'user' }, { name: 'admin' }, { name: 'superadmin' }]);
       console.log('✅ Roles seeded');
     }
   }
