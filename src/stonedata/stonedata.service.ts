@@ -8,12 +8,14 @@ import { dfeStoneQuery, getStoneVendorQuery, labStoneQuery, naturalStoneQuery } 
 import { DataSource, ILike, Repository } from 'typeorm';
 import { handleImage, handleVideo } from '../utils/mediaProcessor';
 import { Media, Stock, Stonedata } from './entities';
+import { ConfigService } from '@nestjs/config';
+import { initializeMSSQL } from 'src/database/dfe-data-source';
 
 @Injectable()
 export class StonedataService {
 
   constructor(
-    @Inject('MsSqlDataSource') private readonly dataSource: DataSource,
+    // @Inject('MsSqlDataSource') private readonly dataSource: DataSource,
     @Inject('DFRDataSource') private readonly dfrDataSource: DataSource,
     @InjectRepository(Stonedata)
     private readonly stoneRepository: Repository<Stonedata>,
@@ -24,7 +26,8 @@ export class StonedataService {
   ) { }
   async getDFEStockData(page?: any, limit?: any) {
     try {
-      const result = await this.dataSource.query(dfeStoneQuery(page, limit));
+      const dataSource = await initializeMSSQL();
+      const result = await dataSource.query(dfeStoneQuery(page, limit));
       return result;
     } catch (e) {
       console.log(e);
@@ -57,7 +60,8 @@ export class StonedataService {
 
   async getDFEVendorStoneData(diamond_codes: any) {
     try {
-      const result = await this.dataSource.query(getStoneVendorQuery(diamond_codes));
+      const dataSource = await initializeMSSQL();
+      const result = await dataSource.query(getStoneVendorQuery(diamond_codes));
       return result;
     } catch (e) {
       console.log(e);
