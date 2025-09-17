@@ -16,7 +16,8 @@ export class AuthController {
   async register(@Body() body: CreateUserDto) {
     try {
       const { email, password, name } = body || {};
-      return this.authService.register(name, email, password);
+      const result = this.authService.register(name, email, password);
+      return {data:result,message:"Successfully registered."}
     } catch (error) {
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -27,8 +28,8 @@ export class AuthController {
   async login(@Body() body: LoginUserDto) {
     try {
       const { email, password } = body;
-      
-      return await this.authService.login(email, password);
+      const result = await this.authService.login(email, password);
+      return {data:result,message:"Successfully login."}
     } catch (error) {
       // You can customize the error handling as needed
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
