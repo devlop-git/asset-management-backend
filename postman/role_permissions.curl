@@ -1,0 +1,30 @@
+# Role-Permissions Management API Endpoints
+
+# 1. Assign a permission to a role
+curl --location 'http://localhost:3000/role-permissions' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+--data-raw '{
+    "roleId": 1,
+    "permissionId": 2
+}'
+
+# 2. Get all role-permissions
+curl --location 'http://localhost:3000/role-permissions' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# 3. Get role-permissions by role ID
+curl --location 'http://localhost:3000/role-permissions/role/1' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# 4. Delete a role-permission by ID
+curl --location --request DELETE 'http://localhost:3000/role-permissions/123' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Notes:
+# - Replace YOUR_JWT_TOKEN with the JWT received from the login endpoint.
+# - Example fields for assigning a permission to a role:
+#   roleId: numeric role identifier (e.g., 1)
+#   permissionId: numeric permission identifier (e.g., 2)
+
+

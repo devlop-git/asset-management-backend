@@ -1,11 +1,11 @@
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from "typeorm";
 
-export class CreatePermissionTable1758090435197 implements MigrationInterface {
+export class CreateRolePermissionTable1758091931478 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(
             new Table({
-                name: "permissions",
+                name: "role_permissions",
                 columns: [
                     {
                         name: "id",
@@ -15,28 +15,14 @@ export class CreatePermissionTable1758090435197 implements MigrationInterface {
                         generationStrategy: "increment",
                     },
                     {
-                        name: "url",
-                        type: "varchar",
-                        length: "255",
+                        name: "role_id",
+                        type: "int",
                         isNullable: false,
                     },
                     {
-                        name: "method",
-                        type: "varchar",
-                        length: "100",
+                        name: "permission_id",
+                        type: "int",
                         isNullable: false,
-                    },
-                    {
-                        name: "description",
-                        type: "text",
-                        isNullable: true,
-                    },
-                    {
-                        name: "status",
-                        type: "smallint",
-                        isNullable: false,
-                        default: 1,
-                        comment: "0: inactive, 1: active",
                     },
                     {
                         name: "created_at",
@@ -51,19 +37,33 @@ export class CreatePermissionTable1758090435197 implements MigrationInterface {
                         isNullable: false,
                     },
                 ],
-                uniques: [
-                    {
-                        name: "UQ_permissions_url_method",
-                        columnNames: ["url", "method"],
-                    },
-                ],
             }),
             true
+        );
+
+        await queryRunner.createForeignKey(
+            "role_permissions",
+            new TableForeignKey({
+                columnNames: ["role_id"],
+                referencedTableName: "roles",
+                referencedColumnNames: ["id"],
+                onDelete: "CASCADE",
+            })
+        );
+
+        await queryRunner.createForeignKey(
+            "role_permissions",
+            new TableForeignKey({
+                columnNames: ["permission_id"],
+                referencedTableName: "permissions",
+                referencedColumnNames: ["id"],
+                onDelete: "CASCADE",
+            })
         );
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable("permissions");
+        await queryRunner.dropTable("role_permissions");
     }
 
 }
