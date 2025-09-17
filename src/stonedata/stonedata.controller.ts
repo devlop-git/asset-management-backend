@@ -82,24 +82,12 @@ export class StonedataController {
         // return { message: 'Stonedata creation from stock completed.' };
     }
 
-    @Get('stock-list')
-    async getStockList(
-        @Query('page') page: string,
-        @Query('pageSize') pageSize: string,
-    ) {
-        const pageNum = parseInt(page, 10) || 1;
-        const pageSizeNum = parseInt(pageSize, 10) || 20;
-        return await this.stoneDataService.getPaginatedIgiList(
-            pageNum,
-            pageSizeNum,
-        );
-    }
 
     @Get('stone-details')
     // @UseInterceptors(ResponseInterceptor)
     async getStoneDetails(@Query('certificate_no') certificateNo: string) {
         try {
-            const stoneDetails = await this.stoneDataService.getStonedataByCertificateNo(certificateNo);
+            const stoneDetails = await this.stoneDataService.getStockWithRelations(certificateNo);
             if (!stoneDetails) {
                 throw new HttpException('Stone Not Found', HttpStatus.NOT_FOUND);
             }
@@ -141,7 +129,7 @@ export class StonedataController {
     async searchStonedata(@Query() query: any) {
         const page = query.page || 1;
         const pageSize = query.pageSize || 20;
-        return await this.stoneDataService.searchStonedata(query, page, pageSize);
+        return await this.stoneDataService.searchQuery(query, page, pageSize);
     }
 
     @Get('filterData')

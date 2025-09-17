@@ -98,31 +98,57 @@ async function fetchDetails(certNumber) {
     }
 }
 
-export const  processAll=async(certNumber) =>{
-    // for (const certNumber of certNumbers) {
-        let attempt = 0;
-        let success = false;
-        while (attempt < 3 && !success) {
-            try {
-                console.log(`Processing ${certNumber}, attempt ${attempt + 1}...`);
-                const data = await fetchDetails(certNumber);
-                console.log(`✅ Done ${certNumber}`);
-                success = true;
-                return data;
-            } catch (error) {
-                attempt++;
-                if (attempt >= 3) {
-                    console.error(`❌ All attempts failed for ${certNumber}`);
-                    logFailedCert(certNumber, error.message);
-                    return null
-                } else {
-                    console.warn(`⚠️ Retry ${attempt} for ${certNumber}`);
-                    await delay(getRandomTimeout());
-                }
-            }
-        }
-    // }
-}
+// export const  processAll=async(certNumber) =>{
+//     // for (const certNumber of certNumbers) {
+//         let attempt = 0;
+//         let success = false;
+//         while (attempt < 3 && !success) {
+//             try {
+//                 console.log(`Processing ${certNumber}, attempt ${attempt + 1}...`);
+//                 const data = await fetchDetails(certNumber);
+//                 console.log(`✅ Done ${certNumber}`);
+//                 success = true;
+//                 return data;
+//             } catch (error) {
+//                 attempt++;
+//                 if (attempt >= 3) {
+//                     console.error(`❌ All attempts failed for ${certNumber}`);
+//                     logFailedCert(certNumber, error.message);
+//                     return null
+//                 } else {
+//                     console.warn(`⚠️ Retry ${attempt} for ${certNumber}`);
+//                     await delay(getRandomTimeout());
+//                 }
+//             }
+//         }
+//     // }
+// }
 
 // Start processing
 // processAll(certificateNumbers);
+
+
+
+export const processAll = async (certNumber: string) => {
+    let attempt = 0;
+    let success = false;
+
+    while (attempt < 3 && !success) {
+        try {
+            console.log(`Processing ${certNumber}, attempt ${attempt + 1}...`);
+            const data = await fetchDetails(certNumber);
+            console.log(`✅ Done ${certNumber}`);
+            success = true;
+            return data;
+        } catch (error) {
+            attempt++;
+            console.warn(`⚠️ Attempt ${attempt} failed for ${certNumber}: ${error.message || error}`);
+            if (attempt >= 3) {
+                console.error(`❌ All attempts failed for ${certNumber}`);
+                logFailedCert(certNumber, error.message || 'Unknown error');
+                return null;
+            }
+            await delay(getRandomTimeout());
+        }
+    }
+};
