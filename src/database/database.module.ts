@@ -5,10 +5,10 @@ import { initializePostgres } from './postgres-data-source';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 
-const MsSqlDataSourceProvider = {
-  provide: 'MsSqlDataSource',
-  useFactory: initializeMSSQL,
-};
+// const MsSqlDataSourceProvider = {
+//   provide: 'MsSqlDataSource',
+//   useFactory: initializeMSSQL,
+// };
 
 const DFRDataSourceProvider = {
   provide: 'DFRDataSource',
@@ -28,12 +28,12 @@ const PostgresDataSourceProvider = {
     }),
   ],
   providers: [
-    MsSqlDataSourceProvider,
+    // MsSqlDataSourceProvider,
     DFRDataSourceProvider,
     PostgresDataSourceProvider,
   ],
   exports: [
-    'MsSqlDataSource',
+    // 'MsSqlDataSource',
     'DFRDataSource',
     'PostgresDataSource',
   ],
