@@ -2,9 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import * as fs from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+
+  const httpsOptions = {
+    key: fs.readFileSync('./privkey1.pem'),
+    cert: fs.readFileSync('./fullchain1.pem'),
+  };
+
+  const app = await NestFactory.create(AppModule,{httpsOptions});
   app.enableCors();
 
   app.useGlobalPipes(
