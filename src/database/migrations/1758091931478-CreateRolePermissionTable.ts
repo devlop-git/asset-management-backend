@@ -47,7 +47,6 @@ export class CreateRolePermissionTable1758091931478 implements MigrationInterfac
                 columnNames: ["role_id"],
                 referencedTableName: "roles",
                 referencedColumnNames: ["id"],
-                onDelete: "CASCADE",
             })
         );
 
@@ -57,7 +56,6 @@ export class CreateRolePermissionTable1758091931478 implements MigrationInterfac
                 columnNames: ["permission_id"],
                 referencedTableName: "permissions",
                 referencedColumnNames: ["id"],
-                onDelete: "CASCADE",
             })
         );
     }

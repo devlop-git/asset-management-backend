@@ -32,7 +32,7 @@ export class CreatePermissionTable1758090435197 implements MigrationInterface {
                         isNullable: true,
                     },
                     {
-                        name: "status",
+                        name: "is_active",
                         type: "smallint",
                         isNullable: false,
                         default: 1,
