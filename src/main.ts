@@ -11,7 +11,7 @@ async function bootstrap() {
     cert: fs.readFileSync('./fullchain1.pem'),
   };
 
-  const app = await NestFactory.create(AppModule,{httpsOptions});
+  const app = await NestFactory.create(AppModule);
   app.enableCors();
 
   app.useGlobalPipes(
