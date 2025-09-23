@@ -234,7 +234,11 @@ export class StonedataService {
     // Filter: shape
     const shapeArr = toArray(filters.shape);
     if (shapeArr?.length) {
-      query.andWhere('sd.shape IN (:...shapes)', { shapes: shapeArr });
+      const conditions = shapeArr.map((_, idx) => `sd.shape ILIKE :shapes${idx}`);
+      shapeArr.forEach((val, idx) => {
+        query.setParameter(`shapes${idx}`, `%${val}%`);
+      });
+      query.andWhere(`(${conditions.join(' OR ')})`);
     }
 
     // Filter: carat range
