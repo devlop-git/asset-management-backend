@@ -120,6 +120,7 @@ export class StonedataService {
   }
 
   async processStocks(stocks: any[], pageSize = 10, delayMs = 10000) {
+    const failed: string[] = [];
     for (let i = 0; i < stocks.length; i++) {
       const stock = stocks[i];
       const parts = (stock.stock || '').split(' ');
@@ -131,7 +132,8 @@ export class StonedataService {
         // const report = await getIgiInfo(cert); // this includes retry logic
         const report = await processAll(cert);
 
-        if (report.length > 0) {
+
+        if (report && report.length > 0) {
           const { stonedata, media }: any = mapReportToStoneAndMedia(JSON.parse(report)[0], stock); // mapReportToStoneAndMedia(report[0], stock);
 
           // Create and save stonedata
@@ -152,11 +154,11 @@ export class StonedataService {
 
         } else {
           console.log(`Failed for cert ${cert}`);
+          failed.push(cert);
         }
       }
-
     }
-
+    console.log('Failed stocks:', failed);
     console.log('All stocks processed.');
   };
 
