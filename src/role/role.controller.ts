@@ -18,6 +18,7 @@ import { ResponseType } from 'src/common/types/response.type';
 
 @Controller('role')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('superadmin','admin')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
@@ -27,7 +28,6 @@ export class RoleController {
     return { data: result, message: 'Role created successfully' };
   }
 
-  @Roles('admin','superadmin')
   @Get()
   async findAll(): ResponseType<Role[]> {
     const result = await this.roleService.findAll();
@@ -35,7 +35,6 @@ export class RoleController {
   }
 
   @Get(':id')
-  @Roles('admin', 'user')
   async findOne(@Param('id') id: string): ResponseType<Role> {
     const role = await this.roleService.findOne(Number(id));
     if (!role) {
