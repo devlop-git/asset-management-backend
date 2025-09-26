@@ -4,7 +4,7 @@ import {
   Post,
   Body,
   Param,
-  Patch,
+  Put,
   Delete,
   NotFoundException,
   UseGuards,
@@ -27,7 +27,7 @@ export class RoleController {
     return { data: result, message: 'Role created successfully' };
   }
 
-  @Roles('admin')
+  @Roles('admin','superadmin')
   @Get()
   async findAll(): ResponseType<Role[]> {
     const result = await this.roleService.findAll();
@@ -44,7 +44,7 @@ export class RoleController {
     return { data: role, message: 'Role fetched successfully' };
   }
 
-  @Patch(':id')
+  @Put(':id')
   async update(
     @Param('id') id: string,
     @Body() updateRoleDto: Partial<Role>,
