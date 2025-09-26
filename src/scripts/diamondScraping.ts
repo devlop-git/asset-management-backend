@@ -121,6 +121,7 @@ export const  processAll=async(certNumber) =>{
                 }
             }
         }
+        return null;
     // }
 }
 
