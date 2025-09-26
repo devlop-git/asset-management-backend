@@ -16,3 +16,36 @@ curl --location 'http://localhost:3000/auth/login' \
     "email": "shilwant.gupta@navgrahaa.com",
     "password": "test123"
 }'
+
+
+#Create user (POST /users)
+curl -X POST "http://localhost:3000/users" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -d '{
+    "name": "Alice Doe",
+    "email": "alice@example.com",
+    "password": "StrongP@ssw0rd",
+    "role": 1
+  }'
+
+#Get all users (GET /users)
+curl -X GET "http://localhost:3000/users" \
+  -H "Authorization: Bearer <TOKEN>"
+
+
+#Get one user (GET /users/:id)
+curl -X GET "http://localhost:3000/users/1" \
+  -H "Authorization: Bearer <TOKEN>"
+
+#Update user (PATCH /users/:id)
+curl -X PATCH "http://localhost:3000/users/1" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -d '{
+    "name": "Alice Updated"
+  }'
+
+#Delete user (DELETE /users/:id)
+curl -X DELETE "http://localhost:3000/users/1" \
+  -H "Authorization: Bearer <TOKEN>"
