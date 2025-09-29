@@ -1,8 +1,13 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, NotFoundException, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { Permission } from './entities/permissions.entity';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('permissions')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('superadmin','admin')
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 

@@ -20,13 +20,7 @@ export class UsersService {
       relations: ['role'],
     });
     if (user) {
-      const { password, role, ...rest } = user;
-      // Only include role name
-      const userWithRoleName = {
-        ...rest,
-        role: role ? { name: role.name } : undefined,
-      } as User;
-      return userWithRoleName;
+      return user;
     }
     return undefined;
   }
@@ -51,10 +45,13 @@ export class UsersService {
   async findAll(): Promise<User[]> {
     const users = await this.userRepository.find({ relations: ['role'] });
     // Remove password and only include role name for each user
-    return users.map(({ password, role, ...rest }) => ({
-      ...rest,
-      role: role ? { name: role.name } : undefined,
-    }) as User);
+    return users.map(
+      ({ password, role, ...rest }) =>
+        ({
+          ...rest,
+          role: role ? { name: role.name } : undefined,
+        }) as User,
+    );
   }
 
   async create(

@@ -3,12 +3,11 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  UseGuards,
+  // UseGuards,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { RolesGuard } from './common/guards/roles.guard';
-import { Roles } from './common/decorators/roles.decorator';
-import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+// import { RolesGuard } from './common/guards/roles.guard';
+// import { Roles } from './common/decorators/roles.decorator';
 import { ResponseType } from './common/types/response.type';
 
 @Controller()

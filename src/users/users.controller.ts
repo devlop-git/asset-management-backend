@@ -8,6 +8,7 @@ import {
   Delete,
   NotFoundException,
   UseGuards,
+  Put,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/users.entity';
@@ -19,6 +20,7 @@ import { createUserWithRoleDto } from './dto/users.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin','superadmin')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -40,7 +42,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('admin', 'user')
   async findOne(@Param('id') id: string): ResponseType<User> {
     const user = await this.usersService.findById(Number(id));
     if (!user) {
@@ -49,7 +50,7 @@ export class UsersController {
     return { data: user, message: 'User fetched successfully' };
   }
 
-  @Patch(':id')
+  @Put(':id')
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: Partial<User>,
