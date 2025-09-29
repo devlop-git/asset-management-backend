@@ -361,7 +361,11 @@ export class StonedataService {
 
     // Fetch stones from DB with relation
     const stoneData = await this.mediaRepository.find({
-      relations: ['stonedata']
+      relations: ['stonedata'],
+      skip: 650,   // skip first 450 records
+      order: {
+        id: 'ASC', // always good to order for consistent pagination
+      },
     });
 
     // Get certificate numbers from stones
