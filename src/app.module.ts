@@ -11,6 +11,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolePermissionsModule } from './role_permissions/role_permissions.module';
+import { CustomLogger } from './logger/custom-logger.service';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { RolePermissionsModule } from './role_permissions/role_permissions.modul
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
+    CustomLogger
   ],
 })
 export class AppModule {}

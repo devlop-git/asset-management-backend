@@ -3,15 +3,11 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import * as fs from 'fs';
+import { CustomLogger } from './logger/custom-logger.service';
 
 async function bootstrap() {
 
-  // const httpsOptions = {
-  //   key: fs.readFileSync('./privkey1.pem'),
-  //   cert: fs.readFileSync('./fullchain1.pem'),
-  // };
-
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { logger: false });
   app.enableCors();
 
   app.useGlobalPipes(
@@ -22,8 +18,11 @@ async function bootstrap() {
     }),
   );
 
-   // Apply global exception filter
-   app.useGlobalFilters(new AllExceptionsFilter());
+  const logger = new CustomLogger();
+  app.useLogger(logger);
+
+  // Apply global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
